@@ -6,7 +6,7 @@ android {
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.example.splitball"
+        applicationId "com.example.learnleaf"
         minSdk 21
         targetSdk 34
         versionCode 1

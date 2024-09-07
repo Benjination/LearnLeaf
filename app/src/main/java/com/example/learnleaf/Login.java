@@ -19,7 +19,7 @@ public class Login extends AppCompatActivity {
     TextView email;
     TextView password;
 
-    String PW, EM;
+    String PW = "Blank", EM = "Also Blank";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +38,20 @@ public class Login extends AppCompatActivity {
         {
             EM = email.getText().toString();
             PW = password.getText().toString();
-            Toast.makeText(this, "Submitted", Toast.LENGTH_SHORT).show();
+            if (EM.isEmpty() || PW.isEmpty()) {
+                Toast.makeText(Login.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            }
+            if (!EM.isEmpty() && !PW.isEmpty()){
+                Toast.makeText(Login.this, "Submitted", Toast.LENGTH_SHORT).show();
+                System.out.println("Email:" + EM);
+                System.out.println("Password:" + PW);
+            }
+            if (email == null || password == null) {
+                Toast.makeText(Login.this, "Error: Fields not initialized", Toast.LENGTH_SHORT).show();
+                return;  // Exit the listener if fields are not initialized
+            }
+            Intent intent = new Intent(Login.this, Login.class);
+            startActivity(intent);
         });
 
     }
