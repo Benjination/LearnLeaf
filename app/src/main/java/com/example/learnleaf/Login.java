@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.nfc.Tag;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,10 +17,9 @@ public class Login extends AppCompatActivity {
     Button back;
     Button submit;
 
-    TextView email;
-    TextView password;
 
-    String PW = "Blank", EM = "Also Blank";
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,30 +28,41 @@ public class Login extends AppCompatActivity {
 
         back = findViewById(R.id.back);
         submit = findViewById(R.id.submit);
+        EditText email = findViewById(R.id.email);
+        EditText password = findViewById(R.id.password);
 
         back.setOnClickListener(v ->
         {
             Intent intent = new Intent(Login.this, MainActivity.class);
             startActivity(intent);
         });
-        submit.setOnClickListener(v ->
-        {
-            EM = email.getText().toString();
-            PW = password.getText().toString();
-            if (EM.isEmpty() || PW.isEmpty()) {
-                Toast.makeText(Login.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
-            }
-            if (!EM.isEmpty() && !PW.isEmpty()){
-                Toast.makeText(Login.this, "Submitted", Toast.LENGTH_SHORT).show();
-                System.out.println("Email:" + EM);
-                System.out.println("Password:" + PW);
-            }
+        submit.setOnClickListener(v -> {
             if (email == null || password == null) {
                 Toast.makeText(Login.this, "Error: Fields not initialized", Toast.LENGTH_SHORT).show();
                 return;  // Exit the listener if fields are not initialized
             }
-            Intent intent = new Intent(Login.this, Login.class);
-            startActivity(intent);
+
+            String em = email.getText().toString();
+            String pw = password.getText().toString();
+
+            if (em.isEmpty() || pw.isEmpty()) {
+                Toast.makeText(Login.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(Login.this, "Submitted", Toast.LENGTH_SHORT).show();
+                System.out.println("Email: " + em);
+                System.out.println("Password: " + pw);
+
+                // Here you would typically perform login validation
+                // If login is successful, you might want to start a new activity or finish this one
+                // For example:
+                // if (loginIsSuccessful(em, pw)) {
+                //     Intent intent = new Intent(Login.this, MainAppActivity.class);
+                //     startActivity(intent);
+                //     finish();  // This closes the Login activity
+                // }
+                Intent intent = new Intent(Login.this, Home.class);
+                startActivity(intent);
+            }
         });
 
     }
