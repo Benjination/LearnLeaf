@@ -1,7 +1,6 @@
 package com.example.learnleaf;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,7 +10,6 @@ import android.widget.Toast;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-
 
 public class SignUp extends AppCompatActivity {
 
@@ -23,22 +21,17 @@ public class SignUp extends AppCompatActivity {
         setContentView(R.layout.sign_up);
         FirebaseApp.initializeApp(this);
 
-
         Button back = findViewById(R.id.back);;
         Button submit = findViewById(R.id.submit);
         EditText EM = findViewById(R.id.email);
         EditText PW = findViewById(R.id.password);
         EditText con = findViewById(R.id.confirm);
 
-
-
-
         back.setOnClickListener(v ->
         {
             Intent intent = new Intent(SignUp.this, MainActivity.class);
             startActivity(intent);
         });
-
 
         submit.setOnClickListener(v ->
         {
@@ -47,7 +40,7 @@ public class SignUp extends AppCompatActivity {
                 Toast.makeText(SignUp.this, "Error: Fields not initialized", Toast.LENGTH_SHORT).show();
                 return;  // Exit the listener if fields are not initialized
             }
-            //Captures email and password
+            //Captures email, password, and confirm
             email = EM.getText().toString();
             password = PW.getText().toString();
             confirm = con.getText().toString();
@@ -55,8 +48,6 @@ public class SignUp extends AppCompatActivity {
             if (email.isEmpty() || password.isEmpty()) {
                 Toast.makeText(SignUp.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
             } else {
-                System.out.println("Email: " + email);
-                System.out.println("Password: " + password);
 
                 //Checks validity of user input
                 if (!isValidEmail(email)) {
@@ -75,7 +66,6 @@ public class SignUp extends AppCompatActivity {
                     return;
                 }
 
-
                 //Adds user to Database
                 FirebaseAuth mAuth = FirebaseAuth.getInstance();
 
@@ -85,6 +75,8 @@ public class SignUp extends AppCompatActivity {
                                 FirebaseUser user = mAuth.getCurrentUser();
                                 Log.d("FirebaseAuth", "createUserWithEmail:success");
                                 Toast.makeText(SignUp.this, "User created successfully", Toast.LENGTH_SHORT).show();
+                                Intent intent = new Intent(SignUp.this, Login.class);
+                                startActivity(intent);
                             } else {
                                 Log.w("FirebaseAuth", "createUserWithEmail:failure", task.getException());
                                 Toast.makeText(SignUp.this, "Authentication failed: " + task.getException().getMessage(),

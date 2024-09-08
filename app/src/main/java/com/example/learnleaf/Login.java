@@ -13,13 +13,8 @@ import android.widget.Toast;
 
 public class Login extends AppCompatActivity {
 
-
     Button back;
     Button submit;
-
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +31,7 @@ public class Login extends AppCompatActivity {
             Intent intent = new Intent(Login.this, MainActivity.class);
             startActivity(intent);
         });
+
         submit.setOnClickListener(v -> {
             if (email == null || password == null) {
                 Toast.makeText(Login.this, "Error: Fields not initialized", Toast.LENGTH_SHORT).show();
@@ -52,14 +48,9 @@ public class Login extends AppCompatActivity {
                 System.out.println("Email: " + em);
                 System.out.println("Password: " + pw);
 
-                // Here you would typically perform login validation
-                // If login is successful, you might want to start a new activity or finish this one
-                // For example:
-                // if (loginIsSuccessful(em, pw)) {
-                //     Intent intent = new Intent(Login.this, MainAppActivity.class);
-                //     startActivity(intent);
-                //     finish();  // This closes the Login activity
-                // }
+                //  perform login validation
+                // If login is successful,
+                // Else handle error
                 Intent intent = new Intent(Login.this, Home.class);
                 startActivity(intent);
             }
