@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "998389863314",
+    "project_id": "learnleaf-organizer",
+    "storage_bucket": "learnleaf-organizer.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:998389863314:android:1c025adc457836fa4c674b",
+        "android_client_info": {
+          "package_name": "com.example.learnleaf"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZge30iS21Goyi9uLcPTeSLn5Mw1gjqHs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
