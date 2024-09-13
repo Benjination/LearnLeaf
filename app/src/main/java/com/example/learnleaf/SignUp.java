@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 //I am HACKERMAN
+//I am HACKERMAN
 public class SignUp extends AppCompatActivity {
 
     String email, password, confirm, name;
