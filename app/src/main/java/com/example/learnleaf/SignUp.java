@@ -17,7 +17,7 @@ import com.google.firebase.firestore.CollectionReference;
 import java.util.HashMap;
 import java.util.Map;
 
-
+//I am HACKERMAN
 public class SignUp extends AppCompatActivity {
 
     String email, password, confirm, name;
