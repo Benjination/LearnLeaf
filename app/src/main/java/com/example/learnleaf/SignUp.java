@@ -1,5 +1,6 @@
 package com.example.learnleaf;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -10,15 +11,12 @@ import android.widget.Toast;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.CollectionReference;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
-//I am HACKERMAN
-//I am HACKERMAN
 public class SignUp extends AppCompatActivity {
 
     String email, password, confirm, name;
@@ -29,7 +27,7 @@ public class SignUp extends AppCompatActivity {
         setContentView(R.layout.sign_up);
         FirebaseApp.initializeApp(this);
 
-        Button back = findViewById(R.id.back);;
+        Button back = findViewById(R.id.back);
         Button submit = findViewById(R.id.submit);
         EditText EM = findViewById(R.id.email);
         EditText PW = findViewById(R.id.password);
@@ -85,16 +83,10 @@ public class SignUp extends AppCompatActivity {
                         .addOnCompleteListener(this, task -> {
                             if (task.isSuccessful()) {
                                 FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                                assert firebaseUser != null;
                                 String userId = firebaseUser.getUid();
-
                                 // Create a Map of user data
-                                Map<String, Object> userData = new HashMap<>();
-                                userData.put("dateFormat", "MM/dd/yyyy"); // Default date format
-                                userData.put("email", email);
-                                userData.put("name", name); // Assuming you have a 'name' variable
-                                userData.put("notifications", true); // Default to true
-                                userData.put("notificationFrequency", 2); // Default frequency
-                                userData.put("timeFormat", "HH:mm"); // Default time format
+                                Map<String, Object> userData = getStringObjectMap();
 
                                 // Add user data to Firestore
                                 db.collection("users").document(userId)
@@ -116,13 +108,24 @@ public class SignUp extends AppCompatActivity {
 
                             } else {
                                 Log.w("FirebaseAuth", "createUserWithEmail:failure", task.getException());
-                                Toast.makeText(SignUp.this, "Authentication failed: " + task.getException().getMessage(),
+                                Toast.makeText(SignUp.this, "Authentication failed: " + Objects.requireNonNull(task.getException()).getMessage(),
                                         Toast.LENGTH_LONG).show();
                             }
                         });
             }
         });
 }
+
+    private @NonNull Map<String, Object> getStringObjectMap() {
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("dateFormat", "MM/dd/yyyy"); // Default date format
+        userData.put("email", email);
+        userData.put("name", name); // Assuming you have a 'name' variable
+        userData.put("notifications", true); // Default to true
+        userData.put("notificationFrequency", 2); // Default frequency
+        userData.put("timeFormat", "HH:mm"); // Default time format
+        return userData;
+    }
 
     boolean isValidPassword(String password) {
         // Check if password is at least 6 characters long
@@ -134,7 +137,7 @@ public class SignUp extends AppCompatActivity {
         //Check for Numeric
         boolean hasNumeric = password.matches(".*\\d.*");
         //Check for Special
-        boolean hasSpecial = password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*");
+        boolean hasSpecial = password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*");
         return hasAlpha && hasNumeric && hasSpecial;
     }
     boolean isValidEmail(String email) {
@@ -143,19 +146,5 @@ public class SignUp extends AppCompatActivity {
         }
         //Android's built-in Patterns class for email validation
         return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
-    }
-
-    public class User {
-        public String name;
-        public String email;
-
-        public User() {
-            // Default constructor required for Firebase
-        }
-
-        public User(String name, String email) {
-            this.name = name;
-            this.email = email;
-        }
     }
 }
