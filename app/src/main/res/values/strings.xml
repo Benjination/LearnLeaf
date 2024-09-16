@@ -2,5 +2,16 @@
     <string name="app_name">LearnLeaf</string>
     <string name="back">Back</string>
     <string name="enter_email">Enter Email</string>
+    <string name="login">Login</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="submit">Submit</string>
+    <string name="password2">Password:</string>
+    <string name="email2">Email:</string>
+    <string name="confirm">Confirm</string>
+    <string name="name">Name</string>
+    <string name="confirm2">Confirm:</string>
+    <string name="name2">Name:</string>
 
 </resources>

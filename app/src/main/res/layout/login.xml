@@ -13,7 +13,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="272dp"
-        android:text="Email:"
+        android:text="@string/email2"
         android:textColor="@color/white"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="@+id/email"
@@ -28,7 +28,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="368dp"
-        android:text="Password:"
+        android:text="@string/password2"
         android:textColor="@color/white"
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="@+id/password"
@@ -57,7 +57,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:text="Submit"
+        android:text="@string/submit"
         android:textColor="@color/white"
         app:backgroundTint="#2764AB"
         app:layout_constraintBottom_toTopOf="@+id/back"
@@ -67,11 +67,11 @@
     <EditText
         android:id="@+id/email"
         android:layout_width="207dp"
-        android:layout_height="32dp"
+        android:layout_height="48dp"
         android:layout_marginStart="4dp"
         android:layout_marginTop="300dp"
         android:background="#00BCD4"
-        android:hint="Email"
+        android:hint="@string/email"
         android:inputType="textEmailAddress"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
@@ -79,15 +79,16 @@
         android:textColorHint="#80FFFFFF"
         android:textSize="20sp"
         app:layout_constraintStart_toEndOf="@+id/textView2"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="Autofill,TextContrastCheck" />
 
     <EditText
         android:id="@+id/password"
         android:layout_width="208dp"
-        android:layout_height="31dp"
+        android:layout_height="48dp"
         android:layout_marginTop="19dp"
         android:background="#00BCD4"
-        android:hint="Password"
+        android:hint="@string/password"
         android:inputType="textEmailAddress"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
@@ -95,6 +96,7 @@
         android:textColorHint="#80FFFFFF"
         android:textSize="20sp"
         app:layout_constraintStart_toEndOf="@+id/textView"
-        app:layout_constraintTop_toBottomOf="@+id/email" />
+        app:layout_constraintTop_toBottomOf="@+id/email"
+        tools:ignore="Autofill,TextContrastCheck,TextFields" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

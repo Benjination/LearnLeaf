@@ -1,14 +1,9 @@
 package com.example.learnleaf;
-import com.example.learnleaf.Login;
-
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
-import android.nfc.Tag;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
 
 public class Login extends AppCompatActivity {
