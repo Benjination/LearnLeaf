@@ -6,6 +6,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
 public class Login extends AppCompatActivity {
 
     Button back;
@@ -39,15 +42,24 @@ public class Login extends AppCompatActivity {
             if (em.isEmpty() || pw.isEmpty()) {
                 Toast.makeText(Login.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(Login.this, "Submitted", Toast.LENGTH_SHORT).show();
-                System.out.println("Email: " + em);
-                System.out.println("Password: " + pw);
+                // Perform login validation using Firebase Authentication
+                FirebaseAuth.getInstance().signInWithEmailAndPassword(em, pw)
+                        .addOnCompleteListener(this, task -> {
+                            if (task.isSuccessful()) {
+                                // Sign in success, update UI with the signed-in user's information
+                                Toast.makeText(Login.this, "Authentication successful", Toast.LENGTH_SHORT).show();
+                                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                                // Proceed to next activity
+                                Intent intent = new Intent(Login.this, Home.class);
+                                startActivity(intent);
 
-                //  perform login validation
-                // If login is successful,
-                // Else handle error
-                Intent intent = new Intent(Login.this, Home.class);
-                startActivity(intent);
+                                startActivity(intent);
+                            } else {
+                                // If sign in fails, display a message to the user.
+                                Toast.makeText(Login.this, "Authentication failed: " + task.getException().getMessage(),
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        });
             }
         });
 
