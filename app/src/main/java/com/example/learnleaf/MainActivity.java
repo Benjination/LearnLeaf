@@ -7,12 +7,14 @@ import android.widget.Button;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class MainActivity extends AppCompatActivity {
-
+    private Firebase firebase;
+    private FirebaseAuth mAuth;
+    FirebaseDatabase database = FirebaseDatabase.getInstance();
     Button login;
     Button signup;
-    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,6 +24,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Initialize Firebase Auth
         mAuth = FirebaseAuth.getInstance();
+
+        // Initialize your custom Firebase class
+        firebase = Firebase.getInstance(this);
 
         login = findViewById(R.id.login);
         signup = findViewById(R.id.signup);
@@ -40,10 +45,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-        // Check if user is signed in (non-null) and update UI accordingly.
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser != null){
-            // User is signed in, navigate to Home page
             navigateToHome();
         }
     }
@@ -51,6 +54,6 @@ public class MainActivity extends AppCompatActivity {
     private void navigateToHome() {
         Intent intent = new Intent(MainActivity.this, Home.class);
         startActivity(intent);
-        finish(); // This closes the MainActivity so the user can't go back to it using the back button
+        finish();
     }
 }
