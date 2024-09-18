@@ -109,6 +109,7 @@
         android:layout_marginBottom="7dp"
         android:background="#00BCD4"
         android:hint="@string/password"
+        android:inputType="textPassword"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         android:textColor="@color/white"
@@ -118,7 +119,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/textView5"
         app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="Autofill,TextFields,DuplicateSpeakableTextCheck" />
+        android:importantForAutofill="no" />
 
     <EditText
         android:id="@+id/username"

@@ -2,10 +2,10 @@ package com.example.learnleaf;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -23,6 +23,7 @@ public class Login extends AppCompatActivity {
         submit = findViewById(R.id.submit);
         EditText email = findViewById(R.id.email);
         EditText password = findViewById(R.id.password);
+        password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
 
         back.setOnClickListener(v ->
         {
