@@ -7,12 +7,10 @@ import android.widget.Button;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.FirebaseDatabase;
 
 
 public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
-    FirebaseDatabase database = FirebaseDatabase.getInstance();
     Button login;
     Button signup;
 
@@ -39,16 +37,17 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    //If user is already signed in, Login and Signup are bypassed
     @Override
     public void onStart() {
         super.onStart();
-        // Check if user is signed in (non-null)
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser != null){
             navigateToHome();
         }
     }
 
+    //Navigates to Home Page
     private void navigateToHome() {
         Intent intent = new Intent(MainActivity.this, Home.class);
         startActivity(intent);

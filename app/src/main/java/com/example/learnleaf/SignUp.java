@@ -66,21 +66,25 @@ public class SignUp extends AppCompatActivity {
                     Toast.makeText(SignUp.this, "Passwords do not match", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                //Checks if input password is valid
                 if (!isValidPassword(password)) {
                     Toast.makeText(SignUp.this, "Password must include letters, numbers,\n and a special symbol. " +
                             "It must also be at least 6 characters long", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
+                //Creates empty user object
                 Map<String, Object> userData = getStringObjectMap();
                 Firebase firebase = Firebase.getInstance(this);
+
+                //Creates new User
                 firebase.createUser(email, password, userData, new Firebase.AuthCallback() {
                     @Override
                     public void onSuccess(FirebaseUser user) {
                         Toast.makeText(SignUp.this, "User created successfully", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent(SignUp.this, Login.class);
                         startActivity(intent);
-                        finish(); // Optional: close the SignUp activity
+                        finish(); //Close activity
                     }
 
                     @Override
@@ -91,7 +95,7 @@ public class SignUp extends AppCompatActivity {
             }
         });
 }
-
+    //User Object
     private @NonNull Map<String, Object> getStringObjectMap() {
         Map<String, Object> userData = new HashMap<>();
         userData.put("dateFormat", "MM/dd/yyyy"); // Default date format
@@ -103,24 +107,27 @@ public class SignUp extends AppCompatActivity {
         return userData;
     }
 
+    //Method to validate chosen Password
     boolean isValidPassword(String password) {
-        // Check if password is at least 6 characters long
+        //Check length
         if (password.length() < 6) {
             return false;
         }
-        //Check for alpha
+        //Check alpha
         boolean hasAlpha = password.matches(".*[a-zA-Z].*");
-        //Check for Numeric
+        //Check Numeric
         boolean hasNumeric = password.matches(".*\\d.*");
-        //Check for Special
+        //Check Special
         boolean hasSpecial = password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*");
         return hasAlpha && hasNumeric && hasSpecial;
     }
+
+    //Method to validate chosen Password
     boolean isValidEmail(String email) {
         if (email == null || email.isEmpty()) {
             return false;
         }
-        //Android's built-in Patterns class for email validation
+        //Android's email validation
         return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
     }
 }

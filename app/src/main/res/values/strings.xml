@@ -13,5 +13,6 @@
     <string name="name">Name</string>
     <string name="confirm2">Confirm:</string>
     <string name="name2">Name:</string>
+    <string name="log_out">Log Out</string>
 
 </resources>

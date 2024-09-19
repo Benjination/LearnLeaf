@@ -29,29 +29,31 @@ public class Login extends AppCompatActivity {
         {
             Intent intent = new Intent(Login.this, MainActivity.class);
             startActivity(intent);
+            finish();
         });
 
         submit.setOnClickListener(v -> {
+            //Checks EditText initialization
             if (email == null) {
                 Toast.makeText(Login.this, "Error: Fields not initialized", Toast.LENGTH_SHORT).show();
-                return;  // Exit the listener if fields are not initialized
+                return;
             }
 
             String em = email.getText().toString().trim();
             String pw = password.getText().toString().trim();
 
+            //Checks Empty Fields
             if (em.isEmpty() || pw.isEmpty()) {
                 Toast.makeText(Login.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
             } else {
-                // Use the Firebase class to perform login
+                //Method to Login in Firebase.class
                 firebase.signIn(em, pw, new Firebase.AuthCallback() {
                     @Override
                     public void onSuccess(FirebaseUser user) {
                         Toast.makeText(Login.this, "Authentication successful", Toast.LENGTH_SHORT).show();
-                        // Proceed to next activity
                         Intent intent = new Intent(Login.this, Home.class);
                         startActivity(intent);
-                        finish(); // Optional: close the Login activity
+                        finish();
                     }
 
                     @Override
