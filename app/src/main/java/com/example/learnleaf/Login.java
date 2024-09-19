@@ -6,7 +6,6 @@ import android.text.InputType;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 public class Login extends AppCompatActivity {
@@ -18,6 +17,7 @@ public class Login extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.login);
+        Firebase firebase = Firebase.getInstance(this);
 
         back = findViewById(R.id.back);
         submit = findViewById(R.id.submit);
@@ -32,35 +32,33 @@ public class Login extends AppCompatActivity {
         });
 
         submit.setOnClickListener(v -> {
-            if (email == null || password == null) {
+            if (email == null) {
                 Toast.makeText(Login.this, "Error: Fields not initialized", Toast.LENGTH_SHORT).show();
                 return;  // Exit the listener if fields are not initialized
             }
 
-            String em = email.getText().toString();
-            String pw = password.getText().toString();
+            String em = email.getText().toString().trim();
+            String pw = password.getText().toString().trim();
 
             if (em.isEmpty() || pw.isEmpty()) {
                 Toast.makeText(Login.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
             } else {
-                // Perform login validation using Firebase Authentication
-                FirebaseAuth.getInstance().signInWithEmailAndPassword(em, pw)
-                        .addOnCompleteListener(this, task -> {
-                            if (task.isSuccessful()) {
-                                // Sign in success, update UI with the signed-in user's information
-                                Toast.makeText(Login.this, "Authentication successful", Toast.LENGTH_SHORT).show();
-                                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                                // Proceed to next activity
-                                Intent intent = new Intent(Login.this, Home.class);
-                                startActivity(intent);
+                // Use the Firebase class to perform login
+                firebase.signIn(em, pw, new Firebase.AuthCallback() {
+                    @Override
+                    public void onSuccess(FirebaseUser user) {
+                        Toast.makeText(Login.this, "Authentication successful", Toast.LENGTH_SHORT).show();
+                        // Proceed to next activity
+                        Intent intent = new Intent(Login.this, Home.class);
+                        startActivity(intent);
+                        finish(); // Optional: close the Login activity
+                    }
 
-                                startActivity(intent);
-                            } else {
-                                // If sign in fails, display a message to the user.
-                                Toast.makeText(Login.this, "Authentication failed: " + task.getException().getMessage(),
-                                        Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                    @Override
+                    public void onError(String errorMessage) {
+                        Toast.makeText(Login.this, "Authentication failed: " + errorMessage, Toast.LENGTH_LONG).show();
+                    }
+                });
             }
         });
 

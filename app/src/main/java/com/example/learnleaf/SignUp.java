@@ -13,7 +13,6 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
-import android.text.InputType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -80,40 +79,23 @@ public class SignUp extends AppCompatActivity {
                 // Adds user to Database and Firestore
                 FirebaseAuth mAuth = FirebaseAuth.getInstance();
                 FirebaseFirestore db = FirebaseFirestore.getInstance();
+                Map<String, Object> userData = getStringObjectMap();
 
-                mAuth.createUserWithEmailAndPassword(email, password)
-                        .addOnCompleteListener(this, task -> {
-                            if (task.isSuccessful()) {
-                                FirebaseUser firebaseUser = mAuth.getCurrentUser();
-                                assert firebaseUser != null;
-                                String userId = firebaseUser.getUid();
-                                // Create a Map of user data
-                                Map<String, Object> userData = getStringObjectMap();
+                Firebase firebase = Firebase.getInstance(this);
+                firebase.createUser(email, password, userData, new Firebase.AuthCallback() {
+                    @Override
+                    public void onSuccess(FirebaseUser user) {
+                        Toast.makeText(SignUp.this, "User created successfully", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent(SignUp.this, Login.class);
+                        startActivity(intent);
+                        finish(); // Optional: close the SignUp activity
+                    }
 
-                                // Add user data to Firestore
-                                db.collection("users").document(userId)
-                                        .set(userData)
-                                        .addOnSuccessListener(aVoid -> {
-                                            Log.d("Firestore", "User data successfully written!");
-                                            Toast.makeText(SignUp.this, "User created successfully", Toast.LENGTH_SHORT).show();
-
-                                            // Navigate to Login activity
-                                            Intent intent = new Intent(SignUp.this, Login.class);
-                                            startActivity(intent);
-                                            finish(); // Optional: close the SignUp activity
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Log.w("Firestore", "Error writing user data", e);
-                                            Toast.makeText(SignUp.this, "Failed to save user data: " + e.getMessage(),
-                                                    Toast.LENGTH_LONG).show();
-                                        });
-
-                            } else {
-                                Log.w("FirebaseAuth", "createUserWithEmail:failure", task.getException());
-                                Toast.makeText(SignUp.this, "Authentication failed: " + Objects.requireNonNull(task.getException()).getMessage(),
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        });
+                    @Override
+                    public void onError(String errorMessage) {
+                        Toast.makeText(SignUp.this, "Authentication failed: " + errorMessage, Toast.LENGTH_LONG).show();
+                    }
+                });
             }
         });
 }

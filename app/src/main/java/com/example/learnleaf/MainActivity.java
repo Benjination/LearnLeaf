@@ -9,8 +9,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.FirebaseDatabase;
 
+
 public class MainActivity extends AppCompatActivity {
-    private Firebase firebase;
     private FirebaseAuth mAuth;
     FirebaseDatabase database = FirebaseDatabase.getInstance();
     Button login;
@@ -20,13 +20,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Initialize Firebase
         FirebaseApp.initializeApp(this);
-
-        // Initialize Firebase Auth
         mAuth = FirebaseAuth.getInstance();
-
-        // Initialize your custom Firebase class
-        firebase = Firebase.getInstance(this);
 
         login = findViewById(R.id.login);
         signup = findViewById(R.id.signup);
@@ -45,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
+        // Check if user is signed in (non-null)
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if(currentUser != null){
             navigateToHome();
