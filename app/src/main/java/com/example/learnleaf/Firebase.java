@@ -3,12 +3,9 @@ package com.example.learnleaf;
 import android.content.Context;
 import android.util.Log;
 import android.widget.Toast;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.Map;
 
 public class Firebase {
@@ -19,7 +16,6 @@ public class Firebase {
     private Firebase(Context context) {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
-        //FirebaseDatabase mDatbasea = FirebaseDatabase.getInstance();
         mContext = context.getApplicationContext();
     }
     //This is used in Sign Up page to Create New User
@@ -60,7 +56,7 @@ public class Firebase {
         return instance;
     }
 
-
+    //Used in Login page to check the input email and password, and Sign in
     public void signIn(String email, String password, final AuthCallback callback) {
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(task -> {
@@ -72,33 +68,13 @@ public class Firebase {
                 });
     }
 
-
-    /*
-    public void signUp(String email, String password, final AuthCallback callback) {
-        mAuth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        callback.onSuccess(mAuth.getCurrentUser());
-                    } else {
-                        callback.onError(task.getException().getMessage());
-                    }
-                });
-    }
-     */
-
+    //Used on Home page to log off user
     public void signOut() {
         mAuth.signOut();
         Toast.makeText(mContext, "Logged out successfully", Toast.LENGTH_SHORT).show();
     }
 
-    public FirebaseUser getCurrentUser() {
-        return mAuth.getCurrentUser();
-    }
-
-    public boolean isUserLoggedIn() {
-        return mAuth.getCurrentUser() != null;
-    }
-
+    //Collects user information of currently signed in user from Firestore
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
         void onError(String errorMessage);

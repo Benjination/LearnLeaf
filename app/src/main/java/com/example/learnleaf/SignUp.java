@@ -5,17 +5,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class SignUp extends AppCompatActivity {
 
@@ -44,7 +40,7 @@ public class SignUp extends AppCompatActivity {
         submit.setOnClickListener(v ->
         {
             //Checks if EditTexts are initialized
-            if (EM == null || PW == null) {
+            if (EM == null) {
                 Toast.makeText(SignUp.this, "Error: Fields not initialized", Toast.LENGTH_SHORT).show();
                 return;  // Exit the listener if fields are not initialized
             }
@@ -76,11 +72,7 @@ public class SignUp extends AppCompatActivity {
                     return;
                 }
 
-                // Adds user to Database and Firestore
-                FirebaseAuth mAuth = FirebaseAuth.getInstance();
-                FirebaseFirestore db = FirebaseFirestore.getInstance();
                 Map<String, Object> userData = getStringObjectMap();
-
                 Firebase firebase = Firebase.getInstance(this);
                 firebase.createUser(email, password, userData, new Firebase.AuthCallback() {
                     @Override
@@ -104,7 +96,7 @@ public class SignUp extends AppCompatActivity {
         Map<String, Object> userData = new HashMap<>();
         userData.put("dateFormat", "MM/dd/yyyy"); // Default date format
         userData.put("email", email);
-        userData.put("name", name); // Assuming you have a 'name' variable
+        userData.put("name", name);
         userData.put("notifications", true); // Default to true
         userData.put("notificationFrequency", 2); // Default frequency
         userData.put("timeFormat", "HH:mm"); // Default time format

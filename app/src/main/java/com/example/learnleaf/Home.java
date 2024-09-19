@@ -16,7 +16,6 @@ public class Home extends AppCompatActivity {
         setContentView(R.layout.home);
 
         firebase = Firebase.getInstance(this);
-
         Button log_out = findViewById(R.id.logout);
         log_out.setOnClickListener(v -> logout());
     }
