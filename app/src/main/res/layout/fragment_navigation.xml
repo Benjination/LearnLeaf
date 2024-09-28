@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/nav_tasks"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:text="@string/tasks"
+        android:textAlignment="center"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/nav_subjects"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:text="@string/subjects"
+        android:textAlignment="center"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/nav_projects"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:text="@string/projects"
+        android:textAlignment="center"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/nav_profile"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:text="@string/profile"
+        android:textAlignment="center"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/nav_archives"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:text="@string/archives"
+        android:textAlignment="center"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/nav_logout"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:text="@string/FragLogOut"
+        android:textAlignment="center"
+        android:clickable="true"
+        android:focusable="true" />
+
+</LinearLayout>

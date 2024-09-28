@@ -9,29 +9,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.LearnLeaf">
         <activity
-            android:name=".Logout"
+            android:name=".Archives"
             android:exported="false" />
-        <activity
-            android:name=".Profile"
-            android:exported="false" />
-        <activity
-            android:name=".Projects"
-            android:exported="false" />
-        <activity
-            android:name=".Subjects"
-            android:exported="false" />
-        <activity
-            android:name=".Tasks"
-            android:exported="false" />
-        <activity
-            android:name=".Home"
-            android:exported="false" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
-        <activity
-            android:name=".Login"
-            android:exported="false" />
+        <activity android:name=".Tasks" />
+        <activity android:name=".Subjects" />
+        <activity android:name=".Projects" />
+        <activity android:name=".Calendar" />
+        <activity android:name=".Profile" />
+        <activity android:name=".Login" />
         <activity
             android:name=".SignUp"
             android:exported="true">

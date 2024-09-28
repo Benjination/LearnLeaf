@@ -12,7 +12,6 @@
         android:id="@+id/imageView"
         android:layout_width="389dp"
         android:layout_height="71dp"
-        android:layout_marginTop="72dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -64,7 +63,6 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="300dp"
         android:text="@string/email2"
         android:textColor="@color/black"
         android:textSize="20sp"
@@ -72,8 +70,6 @@
         app:layout_constraintEnd_toStartOf="@+id/email"
         app:layout_constraintHorizontal_bias="0.872"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0"
         app:textAllCaps="true" />
 
     <TextView
@@ -96,7 +92,7 @@
         android:id="@+id/email"
         android:layout_width="208dp"
         android:layout_height="48dp"
-        android:layout_marginTop="280dp"
+        android:layout_marginTop="165dp"
         android:layout_marginEnd="52dp"
         android:background="#00BCD4"
         android:hint="@string/email"
@@ -109,5 +105,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="Autofill,TextContrastCheck" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

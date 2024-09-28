@@ -8,6 +8,8 @@ import android.widget.EditText;
 import android.widget.Toast;
 import com.google.firebase.auth.FirebaseUser;
 
+import kotlinx.coroutines.scheduling.Task;
+
 public class Login extends AppCompatActivity {
 
     Button back;
@@ -51,7 +53,7 @@ public class Login extends AppCompatActivity {
                     @Override
                     public void onSuccess(FirebaseUser user) {
                         Toast.makeText(Login.this, "Authentication successful", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(Login.this, Home.class);
+                        Intent intent = new Intent(Login.this, Tasks.class);
                         startActivity(intent);
                         finish();
                     }
