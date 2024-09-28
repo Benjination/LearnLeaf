@@ -7,8 +7,10 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,21 +23,32 @@ public class SignUp extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.sign_up);
-        FirebaseApp.initializeApp(this);
 
-        Button back = findViewById(R.id.back);
+        FirebaseApp.initializeApp(this);
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+
+        if (currentUser != null) {
+            Intent intent = new Intent(SignUp.this, Home.class);
+            startActivity(intent);
+            finish();
+        }
+
+
         Button submit = findViewById(R.id.submit);
         EditText EM = findViewById(R.id.email);
         EditText PW = findViewById(R.id.password);
         PW.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         EditText con = findViewById(R.id.confirm);
         EditText NM = findViewById(R.id.username);
+        TextView Login = findViewById(R.id.login);
 
-        back.setOnClickListener(v ->
+        Login.setOnClickListener(v ->
         {
-            Intent intent = new Intent(SignUp.this, MainActivity.class);
+            Intent intent = new Intent(SignUp.this, Login.class);
             startActivity(intent);
         });
+
 
         submit.setOnClickListener(v ->
         {

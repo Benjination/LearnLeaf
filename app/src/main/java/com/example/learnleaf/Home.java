@@ -23,11 +23,11 @@ public class Home extends AppCompatActivity {
     private void logout() {
         firebase.signOut();
         Toast.makeText(Home.this, "Logged out successfully", Toast.LENGTH_SHORT).show();
-        navigateToMainActivity();
+        navigateToSignUp();
     }
 
-    private void navigateToMainActivity() {
-        Intent intent = new Intent(Home.this, MainActivity.class);
+    private void navigateToSignUp() {
+        Intent intent = new Intent(Home.this, SignUp.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();

@@ -14,5 +14,8 @@
     <string name="confirm2">Confirm:</string>
     <string name="name2">Name:</string>
     <string name="log_out">Log Out</string>
+    <string name="logo">Logo</string>
+    <string name="log_in_here">Log in Here</string>
+    <string name="already_have_an_account">Already have an account?</string>
 
 </resources>

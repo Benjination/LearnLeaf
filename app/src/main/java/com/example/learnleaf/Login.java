@@ -27,7 +27,7 @@ public class Login extends AppCompatActivity {
 
         back.setOnClickListener(v ->
         {
-            Intent intent = new Intent(Login.this, MainActivity.class);
+            Intent intent = new Intent(Login.this, SignUp.class);
             startActivity(intent);
             finish();
         });
