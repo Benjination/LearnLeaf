@@ -39,6 +39,7 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.3.0')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'androidx.activity:activity:1.9.2'
+    implementation 'androidx.fragment:fragment:1.8.3'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
     testImplementation 'org.testng:testng:6.9.6'
