@@ -27,5 +27,7 @@
     <string name="tasks">Tasks</string>
     <string name="archives">Archives</string>
     <string name="your_subjects_will_appear_here">Your subjects will appear here</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
 
 </resources>

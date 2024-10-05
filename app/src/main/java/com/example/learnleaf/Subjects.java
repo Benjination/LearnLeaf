@@ -3,13 +3,14 @@ package com.example.learnleaf;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -36,15 +37,8 @@ public class Subjects extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
 
-
-
         // Initialize the subjectsContainer
         subjectsContainer = findViewById(R.id.subjectsContainer);
-
-        // Ensure subjectsContainer is not null
-       // if (subjectsContainer == null) {
-         //   throw new RuntimeException("subjectsContainer not found in layout");
-        //}
 
         // Call the method to fetch active subjects for the current user
         fetchActiveSubjectsForCurrentUser();
@@ -75,7 +69,7 @@ public class Subjects extends AppCompatActivity {
                     updateUI(activeSubjects);
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(Subjects.this, "Currently there are no active Subjects.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(Subjects.this, "Failed to fetch subjects.", Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -85,7 +79,6 @@ public class Subjects extends AppCompatActivity {
             return;
         }
 
-
         // Clear any existing views in the container
         subjectsContainer.removeAllViews();
 
@@ -93,33 +86,55 @@ public class Subjects extends AppCompatActivity {
             TextView noSubjectsText = new TextView(this);
             noSubjectsText.setText("No subjects found");
             subjectsContainer.addView(noSubjectsText);
+            return;
         }
 
-        // Add a TextView for each subject
+        // Add a CardView for each subject
         for (Subject subject : subjects) {
-            TextView textView = new TextView(this);
-            textView.setLayoutParams(new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            textView.setPadding(0, 16, 0, 16); // Add some vertical padding
+            View blockView = getLayoutInflater().inflate(R.layout.item_block, subjectsContainer, false);
+
+            CardView cardView = blockView.findViewById(R.id.subjectCardView);
+            TextView textView = blockView.findViewById(R.id.textView);
+            Button editButton = blockView.findViewById(R.id.editButton);
+            Button deleteButton = blockView.findViewById(R.id.deleteButton);
 
             // Set the text for the TextView
-            String subjectText = subject.getSubjectName();
-            textView.setText(subjectText);
+            textView.setText(subject.getSubjectName());
 
-            // Set the text color based on the subject color
+            // Set the background color of the CardView based on the subject color
             int color = parseColor(subject.getSubjectColor());
-            textView.setTextColor(color);
+            cardView.setCardBackgroundColor(color);
+
+            // If the background color is dark, make the text white for better contrast
+            if (isColorDark(color)) {
+                textView.setTextColor(Color.WHITE);
+            } else {
+                textView.setTextColor(Color.BLACK);
+            }
 
             // Set content description for accessibility
             String contentDescription = String.format("Subject: %s, Semester: %s, Status: %s",
                     subject.getSubjectName(), subject.getSemester(), subject.getStatus());
-            textView.setContentDescription(contentDescription);
+            cardView.setContentDescription(contentDescription);
 
             // Ensure the view is accessible to screen readers
-            textView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-            // Add the TextView to the container
-            subjectsContainer.addView(textView);
+            cardView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+
+            // Set click listeners for edit and delete buttons
+            editButton.setOnClickListener(v -> {
+                // Handle edit action
+                // For example: editSubject(subject);
+            });
+
+            deleteButton.setOnClickListener(v -> {
+                // Handle delete action
+                subjectsContainer.removeView(blockView);
+                // You might also want to remove the subject from your data source
+                // For example: removeSubject(subject);
+            });
+
+            // Add the block view to the container
+            subjectsContainer.addView(blockView);
         }
     }
 
@@ -131,6 +146,12 @@ public class Subjects extends AppCompatActivity {
             // Return a default color if parsing fails
             return ContextCompat.getColor(this, android.R.color.black);
         }
+    }
+
+    // Helper method to determine if a color is dark (for setting text color)
+    private boolean isColorDark(int color) {
+        double darkness = 1 - (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255;
+        return darkness >= 0.5;
     }
 
     // Subject class to represent the data model
