@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -79,7 +80,6 @@ public class Subjects extends AppCompatActivity {
             return;
         }
 
-        // Clear any existing views in the container
         subjectsContainer.removeAllViews();
 
         if (subjects.isEmpty()) {
@@ -89,51 +89,42 @@ public class Subjects extends AppCompatActivity {
             return;
         }
 
-        // Add a CardView for each subject
         for (Subject subject : subjects) {
             View blockView = getLayoutInflater().inflate(R.layout.item_block, subjectsContainer, false);
 
-            CardView cardView = blockView.findViewById(R.id.subjectCardView);
-            TextView textView = blockView.findViewById(R.id.textView);
-            Button editButton = blockView.findViewById(R.id.editButton);
-            Button deleteButton = blockView.findViewById(R.id.deleteButton);
+            CardView cardView = blockView.findViewById(R.id.itemCardView);
+            TextView nameTextView = blockView.findViewById(R.id.itemNameTextView);
+            TextView statusTextView = blockView.findViewById(R.id.itemStatusTextView);
+            TextView extraTextView = blockView.findViewById(R.id.itemExtraTextView);
+            ImageButton editButton = blockView.findViewById(R.id.editButton);
+            ImageButton deleteButton = blockView.findViewById(R.id.deleteButton);
 
-            // Set the text for the TextView
-            textView.setText(subject.getSubjectName());
+            nameTextView.setText(subject.getSubjectName());
+            statusTextView.setText("Status: " + subject.getStatus());
+            extraTextView.setText("Semester: " + subject.getSemester());
 
-            // Set the background color of the CardView based on the subject color
             int color = parseColor(subject.getSubjectColor());
             cardView.setCardBackgroundColor(color);
 
-            // If the background color is dark, make the text white for better contrast
             if (isColorDark(color)) {
-                textView.setTextColor(Color.WHITE);
-            } else {
-                textView.setTextColor(Color.BLACK);
+                nameTextView.setTextColor(Color.WHITE);
+                statusTextView.setTextColor(Color.WHITE);
+                extraTextView.setTextColor(Color.WHITE);
             }
 
-            // Set content description for accessibility
-            String contentDescription = String.format("Subject: %s, Semester: %s, Status: %s",
-                    subject.getSubjectName(), subject.getSemester(), subject.getStatus());
+            String contentDescription = String.format("Subject: %s, Status: %s, Semester: %s",
+                    subject.getSubjectName(), subject.getStatus(), subject.getSemester());
             cardView.setContentDescription(contentDescription);
 
-            // Ensure the view is accessible to screen readers
-            cardView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-
-            // Set click listeners for edit and delete buttons
             editButton.setOnClickListener(v -> {
                 // Handle edit action
-                // For example: editSubject(subject);
             });
 
             deleteButton.setOnClickListener(v -> {
                 // Handle delete action
                 subjectsContainer.removeView(blockView);
-                // You might also want to remove the subject from your data source
-                // For example: removeSubject(subject);
             });
 
-            // Add the block view to the container
             subjectsContainer.addView(blockView);
         }
     }
