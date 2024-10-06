@@ -4,6 +4,11 @@
         <item>Inactive</item>
         <item>Completed</item>
     </string-array>
+    <string-array name="status_array2">
+        <item>Active</item>
+        <item>Inactive</item>
+        <item>Completed</item>
+    </string-array>
     <string name="app_name">LearnLeaf</string>
     <string name="back">Back</string>
     <string name="enter_email">Enter Email</string>
