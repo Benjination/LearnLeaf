@@ -4,11 +4,13 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +22,7 @@ import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -69,6 +72,72 @@ public class Subjects extends AppCompatActivity {
         builder.show();
     }
 
+    private void showEditSubjectDialog(Subject subject) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Edit Subject");
+
+        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_subject, null);
+        final EditText subjectNameInput = viewInflated.findViewById(R.id.subjectNameInput);
+        final EditText semesterInput = viewInflated.findViewById(R.id.semesterInput);
+        final EditText colorInput = viewInflated.findViewById(R.id.colorInput);
+        final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
+
+        // Pre-fill the fields with current subject data
+        subjectNameInput.setText(subject.getSubjectName());
+        semesterInput.setText(subject.getSemester());
+        colorInput.setText(subject.getSubjectColor());
+
+        // Set up the status spinner
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.status_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        statusSpinner.setAdapter(adapter);
+        int spinnerPosition = adapter.getPosition(subject.getStatus());
+        statusSpinner.setSelection(spinnerPosition);
+
+        builder.setView(viewInflated);
+
+        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+            String subjectName = subjectNameInput.getText().toString();
+            String semester = semesterInput.getText().toString();
+            String color = colorInput.getText().toString();
+            String status = statusSpinner.getSelectedItem().toString();
+            updateSubject(subject, subjectName, semester, color, status);
+        });
+        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+    private void updateSubject(Subject subject, String subjectName, String semester, String color, String status) {
+        // Get the document ID for this subject
+        db.collection("subjects")
+                .whereEqualTo("subjectName", subject.getSubjectName())
+                .whereEqualTo("userId", mAuth.getCurrentUser().getUid())
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
+                        String documentId = documentSnapshot.getId();
+
+                        // Update the subject
+                        db.collection("subjects").document(documentId)
+                                .update(
+                                        "subjectName", subjectName,
+                                        "semester", semester,
+                                        "subjectColor", color,
+                                        "status", status
+                                )
+                                .addOnSuccessListener(aVoid -> {
+                                    Toast.makeText(Subjects.this, "Subject updated successfully", Toast.LENGTH_SHORT).show();
+                                    fetchActiveSubjectsForCurrentUser(); // Refresh the list
+                                })
+                                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error updating subject", Toast.LENGTH_SHORT).show());
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error finding subject", Toast.LENGTH_SHORT).show());
+    }
+
     private void createNewSubject(String subjectName, String semester, String color) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -116,6 +185,43 @@ public class Subjects extends AppCompatActivity {
                 });
     }
 
+    private void showDeleteConfirmationDialog(Subject subject, View blockView) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Subject")
+                .setMessage("Are you sure you want to delete this subject?")
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> deleteSubject(subject, blockView))
+                .setNegativeButton(android.R.string.no, null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    private void deleteSubject(Subject subject, View blockView) {
+        // Get the document ID for this subject
+        db.collection("subjects")
+                .whereEqualTo("subjectName", subject.getSubjectName())
+                .whereEqualTo("userId", mAuth.getCurrentUser().getUid())
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
+                        String documentId = documentSnapshot.getId();
+
+                        // Delete the subject from Firestore
+                        db.collection("subjects").document(documentId)
+                                .delete()
+                                .addOnSuccessListener(aVoid -> {
+                                    // Remove the view from the UI
+                                    subjectsContainer.removeView(blockView);
+                                    Toast.makeText(Subjects.this, "Subject deleted successfully", Toast.LENGTH_SHORT).show();
+                                })
+                                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error deleting subject", Toast.LENGTH_SHORT).show());
+                    } else {
+                        Toast.makeText(Subjects.this, "Subject not found", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error finding subject", Toast.LENGTH_SHORT).show());
+    }
+
     private void updateUI(List<Subject> subjects) {
         if (subjectsContainer == null) {
             Toast.makeText(Subjects.this, "Null container", Toast.LENGTH_SHORT).show();
@@ -158,14 +264,16 @@ public class Subjects extends AppCompatActivity {
                     subject.getSubjectName(), subject.getStatus(), subject.getSemester());
             cardView.setContentDescription(contentDescription);
 
+
             editButton.setOnClickListener(v -> {
-                // Handle edit action
+                //Handles edit action
+                showEditSubjectDialog(subject);
             });
 
             deleteButton.setOnClickListener(v -> {
-                // Handle delete action
-                subjectsContainer.removeView(blockView);
-            });
+                    //handle delete action
+                    showDeleteConfirmationDialog(subject, blockView);
+        });
 
             subjectsContainer.addView(blockView);
         }

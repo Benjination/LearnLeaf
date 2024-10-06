@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/subjectNameInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Subject Name"/>
+
+    <EditText
+        android:id="@+id/semesterInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Semester"/>
+
+    <EditText
+        android:id="@+id/colorInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Color (e.g., #FF0000 for red)"/>
+
+    <Spinner
+        android:id="@+id/statusSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+</LinearLayout>
