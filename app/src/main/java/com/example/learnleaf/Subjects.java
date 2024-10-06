@@ -2,14 +2,18 @@ package com.example.learnleaf;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
@@ -23,26 +27,64 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Subjects extends AppCompatActivity {
-
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private LinearLayout subjectsContainer;
+    private ImageView addnew;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.subjects);
 
-        // Initialize Firestore and Auth
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
-
-        // Initialize the subjectsContainer
         subjectsContainer = findViewById(R.id.subjectsContainer);
+        addnew = findViewById(R.id.addnew);
 
-        // Call the method to fetch active subjects for the current user
+        addnew.setOnClickListener(v -> showCreateSubjectDialog());
+
         fetchActiveSubjectsForCurrentUser();
+    }
+
+    private void showCreateSubjectDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Create New Subject");
+
+        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_create_subject, null);
+        final EditText subjectNameInput = viewInflated.findViewById(R.id.subjectNameInput);
+        final EditText semesterInput = viewInflated.findViewById(R.id.semesterInput);
+        final EditText colorInput = viewInflated.findViewById(R.id.colorInput);
+
+        builder.setView(viewInflated);
+
+        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+            String subjectName = subjectNameInput.getText().toString();
+            String semester = semesterInput.getText().toString();
+            String color = colorInput.getText().toString();
+            createNewSubject(subjectName, semester, color);
+        });
+        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+    private void createNewSubject(String subjectName, String semester, String color) {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Subject newSubject = new Subject(semester, "Active", color, subjectName, currentUser.getUid());
+
+        db.collection("subjects")
+                .add(newSubject)
+                .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(Subjects.this, "Subject created successfully", Toast.LENGTH_SHORT).show();
+                    fetchActiveSubjectsForCurrentUser(); // Refresh the list
+                })
+                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error creating subject", Toast.LENGTH_SHORT).show());
     }
 
     private void fetchActiveSubjectsForCurrentUser() {

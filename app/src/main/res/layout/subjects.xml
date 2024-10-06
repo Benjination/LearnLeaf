@@ -29,15 +29,15 @@
 
     <ScrollView
         android:id="@+id/scrollView"
-        android:layout_width="411dp"
-        android:layout_height="440dp"
+        android:layout_width="347dp"
+        android:layout_height="416dp"
         android:layout_marginTop="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.444"
+        app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/navigation_fragment"
-        app:layout_constraintVertical_bias="0.154">
+        app:layout_constraintVertical_bias="0.134">
 
         <LinearLayout
             android:id="@+id/subjectsContainer"
@@ -50,5 +50,15 @@
         </LinearLayout>
 
     </ScrollView>
+
+    <ImageView
+        android:id="@+id/addnew"
+        android:layout_width="84dp"
+        android:layout_height="83dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="28dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@drawable/addnew" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
