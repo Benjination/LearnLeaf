@@ -103,6 +103,7 @@ public class Projects extends AppCompatActivity {
 
         db.collection("projects")
                 .whereEqualTo("userId", userId)
+                .whereEqualTo("status", "Active")  // Add this line to filter for Active projects
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Project> projects = new ArrayList<>();
