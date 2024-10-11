@@ -27,13 +27,13 @@ public class Navigation extends Fragment {
         TextView projectsNav = view.findViewById(R.id.nav_projects);
         TextView profileNav = view.findViewById(R.id.nav_profile);
         TextView logoutNav = view.findViewById(R.id.nav_logout);
-        TextView archivesNav = view.findViewById(R.id.nav_archives);
+        //TextView archivesNav = view.findViewById(R.id.nav_archives);
 
         tasksNav.setOnClickListener(v -> navigateTo(Tasks.class));
         subjectsNav.setOnClickListener(v -> navigateTo(Subjects.class));
         projectsNav.setOnClickListener(v -> navigateTo(Projects.class));
         profileNav.setOnClickListener(v -> navigateTo(Profile.class));
-        archivesNav.setOnClickListener(v -> navigateTo(Archives.class));
+        //archivesNav.setOnClickListener(v -> navigateTo(Archives.class));
         logoutNav.setOnClickListener(v -> logout());
 
         return view;
