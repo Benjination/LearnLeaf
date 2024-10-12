@@ -18,7 +18,8 @@
         android:id="@+id/subjectInput"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:hint="Description" />
+        android:hint="Subject
+" />
 
     <EditText
         android:id="@+id/assignmentInput"
