@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
@@ -35,22 +36,18 @@ import java.util.Calendar;
 import com.google.firebase.firestore.Query;
 
 public class Tasks extends AppCompatActivity {
+    private LinearLayout tasksContainer;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
-    private LinearLayout tasksContainer;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.tasks);
 
+        tasksContainer = findViewById(R.id.tasksContainer);
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
-        tasksContainer = findViewById(R.id.tasksContainer);
-        ImageView addNewTask = findViewById(R.id.addNewTask);
-
-        addNewTask.setOnClickListener(v -> showCreateTaskDialog());
 
         fetchTasksForCurrentUser();
     }
@@ -195,7 +192,7 @@ public class Tasks extends AppCompatActivity {
         Log.d("TaskFetch", "Fetching tasks for user ID: " + userId);
 
         // Show loading indicator
-        showLoadingIndicator();
+        //showLoadingIndicator();
 
         db.collection("tasks")
                 .whereEqualTo("userId", userId)
@@ -231,61 +228,77 @@ public class Tasks extends AppCompatActivity {
                     }
                     Log.d("TaskFetch", "Total tasks fetched: " + tasks.size());
                     updateUI(tasks);
-                    hideLoadingIndicator();
+                    //hideLoadingIndicator();
                 })
                 .addOnFailureListener(e -> {
                     Log.e("TaskFetch", "Error fetching tasks", e);
                     Toast.makeText(Tasks.this, "Failed to fetch tasks: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     updateUI(new ArrayList<>()); // Update UI with empty list
-                    hideLoadingIndicator();
+                    //hideLoadingIndicator();
                 });
     }
 
-    private void showLoadingIndicator() {
-        // Implement this method to show a loading indicator
-    }
-
-    private void hideLoadingIndicator() {
-        // Implement this method to hide the loading indicator
-    }
-
     private void updateUI(List<Task> tasks) {
-        tasksContainer.removeAllViews();
-
-        if (tasks.isEmpty()) {
-            TextView noTasksText = new TextView(this);
-            noTasksText.setText(R.string.no_tasks_found);
-            tasksContainer.addView(noTasksText);
-            return;
-        }
+        tasksContainer.removeAllViews(); // Clear existing views
 
         for (Task task : tasks) {
-            View taskView = getLayoutInflater().inflate(R.layout.task_item_block, tasksContainer, false);
+            View taskView = getLayoutInflater().inflate(R.layout.task_item_block, null);
 
-            CardView cardView = taskView.findViewById(R.id.taskCardView);
+            // Populate the view with task data
             TextView assignmentTextView = taskView.findViewById(R.id.assignmentTextView);
-            TextView projectTextView = taskView.findViewById(R.id.projectTextView);
+            assignmentTextView.setText(task.assignment);
+
             TextView subjectTextView = taskView.findViewById(R.id.subjectTextView);
+            subjectTextView.setText(task.subject);
+
+            TextView projectTextView = taskView.findViewById(R.id.projectTextView);
+            projectTextView.setText(task.project);
+
             TextView descriptionTextView = taskView.findViewById(R.id.descriptionTextView);
+            descriptionTextView.setText(task.description);
+
             TextView priorityTextView = taskView.findViewById(R.id.priorityTextView);
+            priorityTextView.setText(task.priority);
+
             TextView statusTextView = taskView.findViewById(R.id.statusTextView);
+            statusTextView.setText(task.status);
 
-            assignmentTextView.setText(task.getAssignment());
-            projectTextView.setText(String.format("%s%s", getString(R.string.project), task.getProject()));
-            subjectTextView.setText(String.format("%s%s", getString(R.string.subject), task.getSubject()));
-            descriptionTextView.setText(task.getDescription());
-            priorityTextView.setText(String.format("%s%s", getString(R.string.priority), task.getPriority()));
-            statusTextView.setText(String.format("%s%s", getString(R.string.status), task.getStatus()));
+            TextView startDateTextView = taskView.findViewById(R.id.startDateTextView);
+            startDateTextView.setText(task.startDate != null ? task.startDate.toDate().toString() : "Not set");
 
+            TextView dueDateTextView = taskView.findViewById(R.id.dueDateTextView);
+            dueDateTextView.setText(task.dueDate != null ? task.dueDate.toDate().toString() : "Not set");
 
-            String contentDescription = String.format("Task: %s, Project: %s, Subject: %s, Priority: %s, Status: %s",
-                    task.getAssignment(), task.getProject(), task.getSubject(), task.getPriority(), task.getStatus());
-            cardView.setContentDescription(contentDescription);
-
-            taskView.setOnClickListener(v -> showEditTaskDialog(task));
+            ImageButton deleteButton = taskView.findViewById(R.id.deleteButton);
+            deleteButton.setOnClickListener(v -> deleteTask(task, taskView));
 
             tasksContainer.addView(taskView);
         }
+    }
+
+    private void deleteTask(Task task, View taskView) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Task")
+                .setMessage("Are you sure you want to delete this task?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    if (task.id == null) {
+                        Toast.makeText(this, "Error: Task ID is null", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    db.collection("tasks").document(task.id)
+                            .delete()
+                            .addOnSuccessListener(aVoid -> {
+                                Toast.makeText(Tasks.this, "Task deleted successfully", Toast.LENGTH_SHORT).show();
+                                // Remove the task view from the container
+                                tasksContainer.removeView(taskView);
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(Tasks.this, "Error deleting task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 
     private void showEditTaskDialog(Task task) {
