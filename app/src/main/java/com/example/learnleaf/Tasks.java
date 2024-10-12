@@ -269,6 +269,9 @@ public class Tasks extends AppCompatActivity {
             TextView dueDateTextView = taskView.findViewById(R.id.dueDateTextView);
             dueDateTextView.setText(task.dueDate != null ? task.dueDate.toDate().toString() : "Not set");
 
+            ImageButton editButton = taskView.findViewById(R.id.editButton);
+            editButton.setOnClickListener(v -> showEditTaskDialog(task));
+
             ImageButton deleteButton = taskView.findViewById(R.id.deleteButton);
             deleteButton.setOnClickListener(v -> deleteTask(task, taskView));
 
@@ -305,16 +308,10 @@ public class Tasks extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Edit Task");
 
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_create_task, null);
+        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_task, null);
+        final EditText assignmentInput = viewInflated.findViewById(R.id.assignmentInput);
         final EditText subjectInput = viewInflated.findViewById(R.id.subjectInput);
         final EditText projectInput = viewInflated.findViewById(R.id.projectInput);
-        final EditText assignmentInput = viewInflated.findViewById(R.id.assignmentInput);
         final EditText descriptionInput = viewInflated.findViewById(R.id.descriptionInput);
         final EditText startDateInput = viewInflated.findViewById(R.id.startDateInput);
         final EditText dueDateInput = viewInflated.findViewById(R.id.dueDateInput);
@@ -322,14 +319,12 @@ public class Tasks extends AppCompatActivity {
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
 
         // Pre-fill the fields with current task data
+        assignmentInput.setText(task.assignment);
         subjectInput.setText(task.subject);
         projectInput.setText(task.project);
-        assignmentInput.setText(task.assignment);
         descriptionInput.setText(task.description);
-
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-        startDateInput.setText(dateFormat.format(task.startDate.toDate()));
-        dueDateInput.setText(dateFormat.format(task.dueDate.toDate()));
+        startDateInput.setText(task.startDate != null ? task.startDate.toDate().toString() : "");
+        dueDateInput.setText(task.dueDate != null ? task.dueDate.toDate().toString() : "");
 
         // Set up spinners
         ArrayAdapter<CharSequence> priorityAdapter = ArrayAdapter.createFromResource(this,
@@ -347,63 +342,39 @@ public class Tasks extends AppCompatActivity {
         builder.setView(viewInflated);
 
         builder.setPositiveButton("Update", (dialog, which) -> {
-            String subject = subjectInput.getText().toString();
-            String project = projectInput.getText().toString();
-            String assignment = assignmentInput.getText().toString();
-            String description = descriptionInput.getText().toString();
-            String priority = prioritySpinner.getSelectedItem().toString();
-            String status = statusSpinner.getSelectedItem().toString();
+            String newAssignment = assignmentInput.getText().toString();
+            String newSubject = subjectInput.getText().toString();
+            String newProject = projectInput.getText().toString();
+            String newDescription = descriptionInput.getText().toString();
+            String newPriority = prioritySpinner.getSelectedItem().toString();
+            String newStatus = statusSpinner.getSelectedItem().toString();
 
-            Date startDate = null;
-            Date dueDate = null;
-            try {
-                startDate = dateFormat.parse(startDateInput.getText().toString());
-                dueDate = dateFormat.parse(dueDateInput.getText().toString());
-            } catch (ParseException e) {
-                Toast.makeText(Tasks.this, "Invalid date format", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            // Parse dates (you might want to use a DatePicker instead)
+            Date newStartDate = parseDate(startDateInput.getText().toString());
+            Date newDueDate = parseDate(dueDateInput.getText().toString());
 
-            if (startDate != null && dueDate != null) {
-                updateTask(task, assignment, description, dueDate, priority,
-                        project, startDate, status, subject);
-            } else {
-                Toast.makeText(Tasks.this, "Please enter valid dates", Toast.LENGTH_SHORT).show();
-            }
+            updateTask(task, newAssignment, newSubject, newProject, newDescription,
+                    newStartDate, newDueDate, newPriority, newStatus);
         });
-        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
 
-    private void updateTask(Task task, String assignment, String description, Date dueDate, String priority,
-                            String project, Date startDate, String status, String subject) {
 
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
-            return;
-        }
 
-        // Convert Date objects to Timestamp
-        Timestamp startTimestamp = new Timestamp(startDate);
-        Timestamp dueTimestamp = new Timestamp(dueDate);
-
+    private void updateTask(Task task, String newAssignment, String newSubject, String newProject,
+                            String newDescription, Date newStartDate, Date newDueDate,
+                            String newPriority, String newStatus) {
         // Update the task object
-        task.subject = subject;
-        task.project = project;
-        task.assignment = assignment;
-        task.description = description;
-        task.startDate = startTimestamp;
-        task.dueDate = dueTimestamp;
-        task.priority = priority;
-        task.status = status;
-
-        // Ensure the task has an ID
-        if (task.id == null || task.id.isEmpty()) {
-            Toast.makeText(this, "Invalid task ID", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        task.assignment = newAssignment;
+        task.subject = newSubject;
+        task.project = newProject;
+        task.description = newDescription;
+        task.startDate = newStartDate != null ? new Timestamp(newStartDate) : null;
+        task.dueDate = newDueDate != null ? new Timestamp(newDueDate) : null;
+        task.priority = newPriority;
+        task.status = newStatus;
 
         // Update the task in Firestore
         db.collection("tasks").document(task.id)
@@ -412,11 +383,21 @@ public class Tasks extends AppCompatActivity {
                     Toast.makeText(Tasks.this, "Task updated successfully", Toast.LENGTH_SHORT).show();
                     fetchTasksForCurrentUser(); // Refresh the task list
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(Tasks.this, "Error updating task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    Log.e("UpdateTask", "Error updating task", e);
-                });
+                .addOnFailureListener(e -> Toast.makeText(Tasks.this, "Error updating task: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
+
+
+
+    private Date parseDate(String dateString) {
+        try {
+            SimpleDateFormat format = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
+            return format.parse(dateString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
 
 
