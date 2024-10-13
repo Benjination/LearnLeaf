@@ -53,6 +53,10 @@ public class Tasks extends AppCompatActivity {
     }
 
 
+    public void onAddNewTaskClick(View view) {
+        showCreateTaskDialog();
+    }
+
     private void showDatePickerDialog(final TextView dateView) {
         final Calendar c = Calendar.getInstance();
         int year = c.get(Calendar.YEAR);
@@ -103,21 +107,16 @@ public class Tasks extends AppCompatActivity {
 
         builder.setView(viewInflated);
 
-        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+        builder.setPositiveButton("Create", (dialog, which) -> {
+            String subject = subjectInput.getText().toString();
+            String project = projectInput.getText().toString();
             String assignment = assignmentInput.getText().toString();
             String description = descriptionInput.getText().toString();
-            //String dueDateString = dueDateInput.getText().toString();
             String priority = prioritySpinner.getSelectedItem().toString();
-            String project = projectInput.getText().toString();
-            //String startDateString = startDateInput.getText().toString();
             String status = statusSpinner.getSelectedItem().toString();
-            String subject = subjectInput.getText().toString();
-
 
             Date startDate = parseDateString(startDateInput.getText().toString());
             Date dueDate = parseDateString(dueDateInput.getText().toString());
-            createNewTask(subject, project, assignment, description,
-                    startDate, dueDate, priority, status);
 
             if (startDate == null || dueDate == null) {
                 Toast.makeText(Tasks.this, "Invalid date format. Please use yyyy-MM-dd", Toast.LENGTH_SHORT).show();
@@ -126,58 +125,49 @@ public class Tasks extends AppCompatActivity {
 
             createNewTask(subject, project, assignment, description, startDate, dueDate, priority, status);
         });
-        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
 
-    private Date parseDateString(String dateString) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        dateFormat.setLenient(false); // This will make the parser strict
-
-        try {
-            return dateFormat.parse(dateString);
-        } catch (ParseException e) {
-            Log.e("Tasks", "Error parsing date: " + dateString, e);
-            // You can choose to return null or throw an exception
-            // return null;
-            throw new IllegalArgumentException("Invalid date format. Please use yyyy-MM-dd.");
-        }
-    }
-
-
     private void createNewTask(String subject, String project, String assignment, String description,
                                Date startDate, Date dueDate, String priority, String status) {
-
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No user logged in", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Convert Date objects to Timestamp
-        Timestamp startTimestamp = new Timestamp(startDate);
-        Timestamp dueTimestamp = new Timestamp(dueDate);
-
-        // Create new Task object and set its properties
-        Task task = new Task();
-        task.subject = subject;
-        task.project = project;
-        task.assignment = assignment;
-        task.description = description;
-        task.startDate = startTimestamp;
-        task.dueDate = dueTimestamp;
-        task.priority = priority;
-        task.status = status;
-        task.userId = currentUser.getUid();
+        Task newTask = new Task();
+        newTask.subject = subject;
+        newTask.project = project;
+        newTask.assignment = assignment;
+        newTask.description = description;
+        newTask.startDate = new Timestamp(startDate);
+        newTask.dueDate = new Timestamp(dueDate);
+        newTask.priority = priority;
+        newTask.status = status;
+        newTask.userId = currentUser.getUid();
 
         db.collection("tasks")
-                .add(task)
+                .add(newTask)
                 .addOnSuccessListener(documentReference -> {
                     Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
                     fetchTasksForCurrentUser(); // Refresh the task list
                 })
-                .addOnFailureListener(e -> Toast.makeText(Tasks.this, "Error creating task", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> {
+                    Toast.makeText(Tasks.this, "Error creating task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private Date parseDateString(String dateString) {
+        try {
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            return format.parse(dateString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private void fetchTasksForCurrentUser() {
