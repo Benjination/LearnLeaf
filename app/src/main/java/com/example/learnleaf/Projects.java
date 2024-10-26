@@ -30,7 +30,9 @@ public class Projects extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private LinearLayout projectsContainer;
-    private ImageView addnew;
+    private Firebase firebase;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,8 +41,9 @@ public class Projects extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
+        firebase = new Firebase(this);
         projectsContainer = findViewById(R.id.projectsContainer);
-        addnew = findViewById(R.id.addnew);
+        ImageView addnew = findViewById(R.id.addnew);
 
         addnew.setOnClickListener(v -> showCreateProjectDialog());
 
@@ -75,50 +78,6 @@ public class Projects extends AppCompatActivity {
         builder.show();
     }
 
-    private void createNewProject(String projectName, String subject, String status) {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        Project newProject = new Project(projectName, status, subject, currentUser.getUid());
-
-        db.collection("projects")
-                .add(newProject)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(Projects.this, "Project created successfully", Toast.LENGTH_SHORT).show();
-                    fetchProjectsForCurrentUser(); // Refresh the list
-                })
-                .addOnFailureListener(e -> Toast.makeText(Projects.this, "Error creating project", Toast.LENGTH_SHORT).show());
-    }
-
-    private void fetchProjectsForCurrentUser() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            return;
-        }
-
-        String userId = currentUser.getUid();
-
-        db.collection("projects")
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("status", "Active")  // Add this line to filter for Active projects
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Project> projects = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Project project = document.toObject(Project.class);
-                        projects.add(project);
-                    }
-                    updateUI(projects);
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(Projects.this, "Failed to fetch projects.", Toast.LENGTH_SHORT).show();
-                });
-    }
-
-
     private void showEditProjectDialog(Project project) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Edit Project");
@@ -129,7 +88,8 @@ public class Projects extends AppCompatActivity {
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
 
         // Pre-fill the fields with current project data
-        projectNameInput.setText(project.getProjectName());
+        String currentProjectName = project.getProjectName(); // Assuming this method exists
+        projectNameInput.setText(currentProjectName);
         subjectInput.setText(project.getSubject());
 
         // Set up the status spinner
@@ -143,74 +103,94 @@ public class Projects extends AppCompatActivity {
         builder.setView(viewInflated);
 
         builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            String projectName = projectNameInput.getText().toString();
+            String newProjectName = projectNameInput.getText().toString();
             String subject = subjectInput.getText().toString();
             String status = statusSpinner.getSelectedItem().toString();
-            updateProject(project, projectName, subject, status);
+            updateProject(currentProjectName, newProjectName, subject, status);
         });
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
 
-    private void deleteProject(Project project, View blockView) {
-        db.collection("projects")
-                .whereEqualTo("projectName", project.getProjectName())
-                .whereEqualTo("userId", mAuth.getCurrentUser().getUid())
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId();
+    private void createNewProject(String projectName, String subject, String status) {
+        firebase.createNewProject(projectName, subject, status, new Firebase.OnProjectCreatedListener() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(Projects.this, "Project created successfully", Toast.LENGTH_SHORT).show();
+                fetchProjectsForCurrentUser(); // Refresh the list
+            }
 
-                        db.collection("projects").document(documentId)
-                                .delete()
-                                .addOnSuccessListener(aVoid -> {
-                                    projectsContainer.removeView(blockView);
-                                    Toast.makeText(Projects.this, "Project deleted successfully", Toast.LENGTH_SHORT).show();
-                                })
-                                .addOnFailureListener(e -> Toast.makeText(Projects.this, "Error deleting project", Toast.LENGTH_SHORT).show());
-                    } else {
-                        Toast.makeText(Projects.this, "Project not found", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> Toast.makeText(Projects.this, "Error finding project", Toast.LENGTH_SHORT).show());
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Projects.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
+
+    private void fetchProjectsForCurrentUser() {
+        firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
+            @Override
+            public void onSuccess(List<Project> projects) {
+                updateUI(projects);
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Projects.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
+
+    private void deleteProject(String projectName, View blockView) {
+        FirebaseUser currentUser = firebase.getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String userId = currentUser.getUid();
+
+        firebase.deleteProject(projectName, userId, new Firebase.OnProjectDeletedListener() {
+            @Override
+            public void onSuccess() {
+                projectsContainer.removeView(blockView);
+                Toast.makeText(Projects.this, "Project deleted successfully", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Projects.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
 
     private void showDeleteConfirmationDialog(Project project, View blockView) {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Project")
                 .setMessage("Are you sure you want to delete this project?")
-                .setPositiveButton(android.R.string.yes, (dialog, which) -> deleteProject(project, blockView))
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> deleteProject(project.getProjectName(), blockView))
                 .setNegativeButton(android.R.string.no, null)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
     }
 
-    private void updateProject(Project project, String projectName, String subject, String status) {
-        db.collection("projects")
-                .whereEqualTo("projectName", project.getProjectName())
-                .whereEqualTo("userId", mAuth.getCurrentUser().getUid())
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId();
+    private void updateProject(String currentProjectName, String newProjectName, String newSubject, String newStatus) {
+        firebase.updateProject(currentProjectName, newProjectName, newSubject, newStatus, new Firebase.OnProjectUpdatedListener() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(Projects.this, "Project updated successfully", Toast.LENGTH_SHORT).show();
+                fetchProjectsForCurrentUser(); // Refresh the list
+            }
 
-                        db.collection("projects").document(documentId)
-                                .update(
-                                        "projectName", projectName,
-                                        "subject", subject,
-                                        "status", status
-                                )
-                                .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(Projects.this, "Project updated successfully", Toast.LENGTH_SHORT).show();
-                                    fetchProjectsForCurrentUser(); // Refresh the list
-                                })
-                                .addOnFailureListener(e -> Toast.makeText(Projects.this, "Error updating project", Toast.LENGTH_SHORT).show());
-                    }
-                })
-                .addOnFailureListener(e -> Toast.makeText(Projects.this, "Error finding project", Toast.LENGTH_SHORT).show());
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Projects.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void updateUI(List<Project> projects) {
