@@ -120,41 +120,59 @@ public class Tasks extends AppCompatActivity {
                 return;
             }
 
-            createNewTask(subject, project, assignment, description, startDate, dueDate, priority, status);
+            createNewTask(subject, project, assignment, description, startDate, dueDate, priority, status, new OnTaskCreatedListener() {
+                @Override
+                public void onSuccess() {
+                    Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
+                    fetchTasksForCurrentUser(); // Refresh the task list
+                }
+
+                @Override
+                public void onFailure(String errorMessage) {
+                    Toast.makeText(Tasks.this, "Error creating task: " + errorMessage, Toast.LENGTH_SHORT).show();
+                }
+            });
         });
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
 
-    private void createNewTask(String subject, String project, String assignment, String description,
-                               Date startDate, Date dueDate, String priority, String status) {
+    public void createNewTask(String subject, String project, String assignment, String description,
+                              Date startDate, Date dueDate, String priority, String status, OnTaskCreatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            Toast.makeText(this, "No user logged in", Toast.LENGTH_SHORT).show();
+            listener.onFailure("No user logged in");
             return;
         }
 
+        // Create a new Task object
         Task newTask = new Task();
-        newTask.subject = subject;
-        newTask.project = project;
-        newTask.assignment = assignment;
-        newTask.description = description;
-        newTask.startDate = new Timestamp(startDate);
-        newTask.dueDate = new Timestamp(dueDate);
-        newTask.priority = priority;
-        newTask.status = status;
-        newTask.userId = currentUser.getUid();
+        newTask.setSubject(subject);
+        newTask.setProject(project);
+        newTask.setAssignment(assignment);
+        newTask.setDescription(description);
+        newTask.setStartDate(new Timestamp(startDate)); // Assuming you have a setter for startDate
+        newTask.setDueDate(new Timestamp(dueDate)); // Assuming you have a setter for dueDate
+        newTask.setPriority(priority);
+        newTask.setStatus(status);
+        newTask.setUserId(currentUser.getUid());
 
-        db.collection("tasks")
+        String userId = currentUser.getUid();
+
+        // Add the task to Firestore
+        db.collection("users").document(userId).collection("tasks")
                 .add(newTask)
                 .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
-                    fetchTasksForCurrentUser(); // Refresh the task list
+                    newTask.setId(documentReference.getId()); // Set the document ID in the Task object
+                    listener.onSuccess();
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(Tasks.this, "Error creating task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                .addOnFailureListener(e -> listener.onFailure("Error creating task: " + e.getMessage()));
+    }
+
+    public interface OnTaskCreatedListener {
+        void onSuccess();
+        void onFailure(String errorMessage);
     }
 
     private Date parseDateString(String dateString) {
@@ -452,6 +470,14 @@ public class Tasks extends AppCompatActivity {
 
             public void setUserId(String userId) {
                 this.userId = userId;
+            }
+
+            public void setProject(String project) {  // Setter for project
+                this.project = project;
+            }
+
+            public void setStartDate(Timestamp startDate) {  // Setter for startDate
+                this.startDate = startDate;
             }
 
             // Additional methods

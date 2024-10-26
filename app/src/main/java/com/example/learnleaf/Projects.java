@@ -24,6 +24,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Projects extends AppCompatActivity {
@@ -56,8 +57,9 @@ public class Projects extends AppCompatActivity {
 
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_create_project, null);
         final EditText projectNameInput = viewInflated.findViewById(R.id.projectNameInput);
-        final EditText subjectInput = viewInflated.findViewById(R.id.subjectInput);
+        final EditText projectDescriptionInput = viewInflated.findViewById(R.id.projectDescriptionInput); // New input for description
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
+        final EditText subjectInput = viewInflated.findViewById(R.id.subjectInput); // Assuming this is for subjects
 
         // Set up the status spinner
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
@@ -69,17 +71,23 @@ public class Projects extends AppCompatActivity {
 
         builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
             String projectName = projectNameInput.getText().toString();
-            String subject = subjectInput.getText().toString();
+            String projectDescription = projectDescriptionInput.getText().toString(); // Get description
             String status = statusSpinner.getSelectedItem().toString();
-            createNewProject(projectName, subject, status);
+
+            // Assuming subjects are entered as a comma-separated string
+            String subjectString = subjectInput.getText().toString();
+            List<String> projectSubjects = Arrays.asList(subjectString.split(",\\s*")); // Convert to List
+
+            createNewProject(projectName, projectDescription, status, projectSubjects); // Updated call
         });
+
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
 
         builder.show();
     }
 
-    private void createNewProject(String projectName, String subject, String status) {
-        firebase.createNewProject(projectName, subject, status, new Firebase.OnProjectCreatedListener() {
+    private void createNewProject(String projectName, String projectDescription, String projectStatus, List<String> projectSubjects) {
+        firebase.createNewProject(projectName, projectDescription, projectStatus, projectSubjects, new Firebase.OnProjectCreatedListener() {
             @Override
             public void onSuccess() {
                 Toast.makeText(Projects.this, "Project created successfully", Toast.LENGTH_SHORT).show();
@@ -114,29 +122,36 @@ public class Projects extends AppCompatActivity {
 
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_project, null);
         final EditText projectNameInput = viewInflated.findViewById(R.id.projectNameInput);
-        final EditText subjectInput = viewInflated.findViewById(R.id.subjectInput);
+        final EditText projectDescriptionInput = viewInflated.findViewById(R.id.projectDescriptionInput); // New input for description
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
 
         // Pre-fill the fields with current project data
         projectNameInput.setText(project.getProjectName());
-        subjectInput.setText(project.getSubject());
+        projectDescriptionInput.setText(project.getProjectDescription()); // Set description
 
         // Set up the status spinner
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.status_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         statusSpinner.setAdapter(adapter);
-        int spinnerPosition = adapter.getPosition(project.getStatus());
+
+        int spinnerPosition = adapter.getPosition(project.getProjectStatus());
         statusSpinner.setSelection(spinnerPosition);
 
         builder.setView(viewInflated);
 
         builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
             String projectName = projectNameInput.getText().toString();
-            String subject = subjectInput.getText().toString();
+            String projectDescription = projectDescriptionInput.getText().toString(); // Get description
             String status = statusSpinner.getSelectedItem().toString();
-            updateProject(project.projectName, projectName, subject, status);
+
+            // Assuming that you no longer need subjects input
+            List<String> projectSubjects = new ArrayList<>(); // Initialize an empty list or modify as needed
+
+            // Use the document ID directly from the project object if needed
+            updateProject(project.getDocumentId(), projectName, projectDescription, status, projectSubjects); // Updated call
         });
+
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
 
         builder.show();
@@ -175,19 +190,28 @@ public class Projects extends AppCompatActivity {
                 .show();
     }
 
-    private void updateProject(String currentProjectName, String newProjectName, String newSubject, String newStatus) {
-        firebase.updateProject(currentProjectName, newProjectName, newSubject, newStatus, new Firebase.OnProjectUpdatedListener() {
-            @Override
-            public void onSuccess() {
-                Toast.makeText(Projects.this, "Project updated successfully", Toast.LENGTH_SHORT).show();
-                fetchProjectsForCurrentUser(); // Refresh the list
-            }
+    public void updateProject(String projectId, String newProjectName, String newProjectDescription, String newStatus, List<String> newSubjects) {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            // Handle user not signed in
+            return;
+        }
 
-            @Override
-            public void onFailure(String errorMessage) {
-                Toast.makeText(Projects.this, errorMessage, Toast.LENGTH_SHORT).show();
-            }
-        });
+        String userId = currentUser.getUid();
+
+        db.collection("users").document(userId).collection("projects").document(projectId)
+                .update(
+                        "projectName", newProjectName,
+                        "projectDescription", newProjectDescription,
+                        "projectStatus", newStatus,
+                        "projectSubjects", newSubjects // Update subjects
+                )
+                .addOnSuccessListener(aVoid -> {
+                    // Handle success
+                })
+                .addOnFailureListener(e -> {
+                    // Handle failure
+                });
     }
 
     private void updateUI(List<Project> projects) {
@@ -215,18 +239,23 @@ public class Projects extends AppCompatActivity {
             ImageButton editButton = blockView.findViewById(R.id.editButton);
             ImageButton deleteButton = blockView.findViewById(R.id.deleteButton);
 
+            // Set project name and status
             nameTextView.setText(project.getProjectName());
-            statusTextView.setText("Status: " + project.getStatus());
-            extraTextView.setText("Subject: " + project.getSubject());
+            statusTextView.setText("Status: " + project.getProjectStatus());
 
-            String contentDescription = String.format("Project: %s, Status: %s, Subject: %s",
-                    project.getProjectName(), project.getStatus(), project.getSubject());
+            // Display subjects as a comma-separated string
+            String subjectsString = String.join(", ", project.getProjectSubjects());
+            extraTextView.setText("Subjects: " + subjectsString);
+
+            String contentDescription = String.format("Project: %s, Status: %s, Subjects: %s",
+                    project.getProjectName(), project.getProjectStatus(), subjectsString);
             cardView.setContentDescription(contentDescription);
 
             editButton.setOnClickListener(v -> {
                 // Handle edit action
                 showEditProjectDialog(project);
             });
+
             deleteButton.setOnClickListener(v -> {
                 showDeleteConfirmationDialog(project, blockView);
             });
@@ -237,23 +266,29 @@ public class Projects extends AppCompatActivity {
 
     public static class Project {
         private String projectName;
-        private String status;
-        private String subject; // Assuming this is a string representation of the subject
-        private String userId;
-        private String id;
+        private String projectDescription; // New attribute
+        private String projectStatus; // New attribute
+        private List<String> projectSubjects; // New attribute
+        private String documentId;
 
-        // Default constructor (required for Firestore)
-        public Project() {}
-
-        // Constructor with all fields
-        public Project(String projectName, String status, String subject, String userId) {
-            this.projectName = projectName;
-            this.status = status;
-            this.subject = subject;
-            this.userId = userId;
+        // No-argument constructor
+        public Project() {
+            this.projectSubjects = new ArrayList<>(); // Initialize as an empty list
+            this.projectDescription = ""; // Default value
+            this.projectName = ""; // Default value
+            this.projectStatus = "Active"; // Default value (or adjust as needed)
         }
 
-        // Getters and setters
+        // Constructor with parameters
+        public Project(String projectName, String projectDescription, String projectStatus) {
+            this.projectName = projectName;
+            this.projectDescription = projectDescription;
+            this.projectStatus = projectStatus;
+            this.projectSubjects = new ArrayList<>(); // Initialize as an empty list
+
+        }
+
+        // Getters and Setters
         public String getProjectName() {
             return projectName;
         }
@@ -262,36 +297,36 @@ public class Projects extends AppCompatActivity {
             this.projectName = projectName;
         }
 
-        public String getStatus() {
-            return status;
+        public String getProjectDescription() {
+            return projectDescription;
         }
 
-        public void setStatus(String status) {
-            this.status = status;
+        public void setProjectDescription(String projectDescription) {
+            this.projectDescription = projectDescription;
         }
 
-        public String getSubject() {
-            return subject;
+        public String getProjectStatus() {
+            return projectStatus;
         }
 
-        public void setSubject(String subject) {  // Add this setter
-            this.subject = subject;
+        public void setProjectStatus(String projectStatus) {
+            this.projectStatus = projectStatus;
         }
 
-        public String getUserId() {
-            return userId;
+        public List<String> getProjectSubjects() {
+            return projectSubjects;
         }
 
-        public void setUserId(String userId) {
-            this.userId = userId;
+        public void setProjectSubjects(List<String> subjects) {
+            this.projectSubjects = subjects;
         }
 
-        public String getId() {
-            return id;
+        public String getDocumentId() {
+            return documentId;
         }
 
-        public void setId(String id) {
-            this.id = id;
+        public void setDocumentId(String documentId) {
+            this.documentId = documentId; // Implement this method
         }
     }
 }

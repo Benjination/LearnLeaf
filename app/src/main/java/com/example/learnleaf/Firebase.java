@@ -9,7 +9,6 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
@@ -36,10 +35,7 @@ public class Firebase {
         return mAuth.getCurrentUser();
     }
 
-    public interface OnProjectDeletedListener {
-        void onSuccess();
-        void onFailure(String errorMessage);
-    }
+
 
     //Used in Login page to check the input email and password, and Sign in
     public void signIn(String email, String password, final AuthCallback callback) {
@@ -60,7 +56,7 @@ public class Firebase {
         return instance;
     }
 
-    //Collects user information of currently signed in user from Firestore
+
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
         void onError(String errorMessage);
@@ -68,33 +64,27 @@ public class Firebase {
 
     //------------------------------------Projects
 
-    public void createNewProject(String projectName, String subject, String status, OnProjectCreatedListener listener) {
+    public void createNewProject(String projectName, String projectDescription, String projectStatus, List<String> projectSubjects, OnProjectCreatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("User not signed in");
             return;
         }
 
-        // Create a new Project object
-        Projects.Project newProject = new Projects.Project(projectName, status, subject, currentUser.getUid());
+        Projects.Project newProject = new Projects.Project(projectName, projectDescription, projectStatus);
+        newProject.setProjectSubjects(projectSubjects); // Set the list of subjects
 
         String userId = currentUser.getUid();
 
-        // Add the new project to Firestore
         db.collection("users").document(userId).collection("projects")
                 .add(newProject)
                 .addOnSuccessListener(documentReference -> {
-                    // Optionally set the document ID in the project object if needed
-                    newProject.setId(documentReference.getId());
-                    listener.onSuccess();
+                    listener.onSuccess(); // Notify success
                 })
                 .addOnFailureListener(e -> listener.onFailure("Error creating project: " + e.getMessage()));
     }
 
-    public interface OnProjectCreatedListener {
-        void onSuccess();
-        void onFailure(String errorMessage);
-    }
+
 
     public void fetchProjectsForCurrentUser(OnProjectsFetchedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -111,19 +101,19 @@ public class Firebase {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Projects.Project> projects = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Projects.Project project = new Projects.Project();
-                        project.setId(document.getId()); // Set the document ID as the project ID
-                        project.setProjectName(document.getString("projectName"));
-                        project.setStatus(document.getString("projectStatus"));
+                        Projects.Project project = document.toObject(Projects.Project.class);
+                        // Optionally, store the document ID if needed
+                        project.setDocumentId(document.getId()); // Assuming you add a method to store the document ID
 
-                        // Retrieve projectSubjects as a list of DocumentReferences
-                        List<DocumentReference> subjectRefs = (List<DocumentReference>) document.get("projectSubjects");
-                        if (subjectRefs != null) {
-                            List<String> subjectIds = new ArrayList<>();
-                            for (DocumentReference subjectRef : subjectRefs) {
-                                subjectIds.add(subjectRef.getId());
-                            }
-                            project.setSubject(String.join(", ", subjectIds)); // Store as a comma-separated string
+                        // Set other project fields
+                        project.setProjectName(document.getString("projectName"));
+                        project.setProjectDescription(document.getString("projectDescription"));
+                        project.setProjectStatus(document.getString("projectStatus"));
+
+                        // Retrieve projectSubjects as a list of strings
+                        List<String> subjectIds = (List<String>) document.get("projectSubjects");
+                        if (subjectIds != null) {
+                            project.setProjectSubjects(subjectIds); // Set the list of subjects directly
                         }
 
                         projects.add(project);
@@ -133,11 +123,6 @@ public class Firebase {
                 .addOnFailureListener(e -> {
                     listener.onFailure("Failed to fetch projects: " + e.getMessage());
                 });
-    }
-
-    public interface OnProjectsFetchedListener {
-        void onSuccess(List<Projects.Project> projects);
-        void onFailure(String errorMessage);
     }
 
 
@@ -205,8 +190,23 @@ public class Firebase {
                 .addOnFailureListener(e -> listener.onFailure("Error finding project: " + e.getMessage()));
     }
 
+    public interface OnProjectCreatedListener {
+        void onSuccess();
+        void onFailure(String errorMessage);
+    }
+
+    public interface OnProjectDeletedListener {
+        void onSuccess();
+        void onFailure(String errorMessage);
+    }
+
     public interface OnProjectUpdatedListener {
         void onSuccess();
+        void onFailure(String errorMessage);
+    }
+
+    public interface OnProjectsFetchedListener {
+        void onSuccess(List<Projects.Project> projects);
         void onFailure(String errorMessage);
     }
 
@@ -223,12 +223,12 @@ public class Firebase {
 
         db.collection("users").document(userId).collection("subjects")
                 .whereEqualTo("subjectName", subject.getSubjectName())
-                .whereEqualTo("userId", userId)
+                .whereEqualTo("userId", currentUser.getUid())
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
                         DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId();
+                        String documentId = documentSnapshot.getId(); // Get the document ID
 
                         db.collection("users").document(userId).collection("subjects").document(documentId)
                                 .update(
@@ -255,9 +255,7 @@ public class Firebase {
 
         Subjects.Subject newSubject = new Subjects.Subject(semester, "Active", color, subjectName, currentUser.getUid());
 
-        String userId = currentUser.getUid();
-
-        db.collection("users").document(userId).collection("subjects")
+        db.collection("users").document(currentUser.getUid()).collection("subjects")
                 .add(newSubject)
                 .addOnSuccessListener(documentReference -> listener.onSuccess())
                 .addOnFailureListener(e -> listener.onFailure("Error creating subject: " + e.getMessage()));
@@ -411,7 +409,8 @@ public class Firebase {
 
         String userId = currentUser.getUid();
 
-        db.collection("users").document(userId).collection("tasks").document(taskId)
+        db.collection("users").document(userId).collection("tasks")
+                .document(taskId)
                 .delete()
                 .addOnSuccessListener(aVoid -> listener.onSuccess())
                 .addOnFailureListener(e -> listener.onFailure("Error deleting task: " + e.getMessage()));
@@ -425,6 +424,4 @@ public class Firebase {
         void onSuccess(List<Tasks.Task> tasks);
         void onFailure(String errorMessage);
     }
-
-
 }
