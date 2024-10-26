@@ -75,17 +75,20 @@ public class Firebase {
             return;
         }
 
+        // Create a new Project object
         Projects.Project newProject = new Projects.Project(projectName, status, subject, currentUser.getUid());
 
         String userId = currentUser.getUid();
 
-
+        // Add the new project to Firestore
         db.collection("users").document(userId).collection("projects")
                 .add(newProject)
                 .addOnSuccessListener(documentReference -> {
+                    // Optionally set the document ID in the project object if needed
+                    newProject.setId(documentReference.getId());
                     listener.onSuccess();
                 })
-                .addOnFailureListener(e -> listener.onFailure("Error creating project"));
+                .addOnFailureListener(e -> listener.onFailure("Error creating project: " + e.getMessage()));
     }
 
     public interface OnProjectCreatedListener {
@@ -138,14 +141,14 @@ public class Firebase {
     }
 
 
-    public void deleteProject(String projectName, String userId, OnProjectDeletedListener listener) {
+    public void deleteProject(String projectName, OnProjectDeletedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("User not signed in");
             return;
         }
 
-
+        String userId = currentUser.getUid();
 
         db.collection("users").document(userId).collection("projects")
                 .whereEqualTo("projectName", projectName)
@@ -156,16 +159,16 @@ public class Firebase {
                         DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
                         String documentId = documentSnapshot.getId();
 
-
+                        // Delete the project document
                         db.collection("users").document(userId).collection("projects").document(documentId)
                                 .delete()
                                 .addOnSuccessListener(aVoid -> listener.onSuccess())
-                                .addOnFailureListener(e -> listener.onFailure("Error deleting project"));
+                                .addOnFailureListener(e -> listener.onFailure("Error deleting project: " + e.getMessage()));
                     } else {
                         listener.onFailure("Project not found");
                     }
                 })
-                .addOnFailureListener(e -> listener.onFailure("Error finding project"));
+                .addOnFailureListener(e -> listener.onFailure("Error finding project: " + e.getMessage()));
     }
 
     public void updateProject(String currentProjectName, String newProjectName, String newSubject, String newStatus, OnProjectUpdatedListener listener) {
@@ -177,16 +180,16 @@ public class Firebase {
 
         String userId = currentUser.getUid();
 
-
         db.collection("users").document(userId).collection("projects")
                 .whereEqualTo("projectName", currentProjectName)
-                .whereEqualTo("userId", currentUser.getUid())
+                .whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
                         DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
                         String documentId = documentSnapshot.getId();
 
+                        // Update the project document
                         db.collection("users").document(userId).collection("projects").document(documentId)
                                 .update(
                                         "projectName", newProjectName,
@@ -194,12 +197,12 @@ public class Firebase {
                                         "status", newStatus
                                 )
                                 .addOnSuccessListener(aVoid -> listener.onSuccess())
-                                .addOnFailureListener(e -> listener.onFailure("Error updating project"));
+                                .addOnFailureListener(e -> listener.onFailure("Error updating project: " + e.getMessage()));
                     } else {
                         listener.onFailure("Project not found");
                     }
                 })
-                .addOnFailureListener(e -> listener.onFailure("Error finding project"));
+                .addOnFailureListener(e -> listener.onFailure("Error finding project: " + e.getMessage()));
     }
 
     public interface OnProjectUpdatedListener {
@@ -220,7 +223,7 @@ public class Firebase {
 
         db.collection("users").document(userId).collection("subjects")
                 .whereEqualTo("subjectName", subject.getSubjectName())
-                .whereEqualTo("userId", currentUser.getUid())
+                .whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
@@ -270,13 +273,14 @@ public class Firebase {
         String userId = currentUser.getUid();
 
         db.collection("users").document(userId).collection("subjects")
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("status", "Active")
+                //.whereEqualTo("userId", userId)
+                //.whereEqualTo("status", "Active")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Subjects.Subject> activeSubjects = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Subjects.Subject subject = document.toObject(Subjects.Subject.class);
+                        subject.setId(document.getId()); // Set the document ID if needed
                         activeSubjects.add(subject);
                     }
                     listener.onSuccess(activeSubjects);
@@ -293,9 +297,9 @@ public class Firebase {
 
         String userId = currentUser.getUid();
 
-        db.collection("users").document(userId).collection("subjectss")
+        db.collection("users").document(userId).collection("subjects")
                 .whereEqualTo("subjectName", subject.getSubjectName())
-                .whereEqualTo("userId", currentUser.getUid())
+                .whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {

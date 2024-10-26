@@ -149,9 +149,8 @@ public class Projects extends AppCompatActivity {
             return;
         }
 
-        String userId = currentUser.getUid();
-
-        firebase.deleteProject(projectName, userId, new Firebase.OnProjectDeletedListener() {
+        // Use only the project name to delete
+        firebase.deleteProject(projectName, new Firebase.OnProjectDeletedListener() {
             @Override
             public void onSuccess() {
                 projectsContainer.removeView(blockView);

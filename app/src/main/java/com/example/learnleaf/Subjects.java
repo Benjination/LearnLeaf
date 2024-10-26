@@ -260,6 +260,7 @@ public class Subjects extends AppCompatActivity {
         private String subjectColor;
         private String subjectName;
         private String userId;
+        private String id;
 
         // Default constructor (required for Firestore)
         public Subject() {}
@@ -313,6 +314,10 @@ public class Subjects extends AppCompatActivity {
 
         public void setUserId(String userId) {
             this.userId = userId;
+        }
+
+        public void setId(String id) {
+            this.id = id; // Assuming you have an id field in your Subject class
         }
 
         // Optional: Override toString() method for easy printing/debugging
