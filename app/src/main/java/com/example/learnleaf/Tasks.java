@@ -357,10 +357,6 @@ public class Tasks extends AppCompatActivity {
         }
     }
 
-
-
-
-
         // Constructor with all fields in the specified order
         public static class Task {
             public String id;
@@ -393,25 +389,13 @@ public class Tasks extends AppCompatActivity {
             }
 
             // Getters and setters
-
-
             public String getStatus() {
                 return status;
             }
 
-
-
             public void setSubject(String subject) {
                 this.subject = subject;
             }
-
-
-
-
-
-
-
-
 
             public String getId() {
                 return id;
@@ -436,12 +420,6 @@ public class Tasks extends AppCompatActivity {
             public String getSubject() {
                 return subject;
             }
-
-
-
-
-
-
 
             public String getUserId() {
                 return userId;
@@ -468,13 +446,9 @@ public class Tasks extends AppCompatActivity {
                 this.priority = priority;
             }
 
-
-
             public void setStatus(String status) {
                 this.status = status;
             }
-
-
 
             public void setUserId(String userId) {
                 this.userId = userId;

@@ -236,12 +236,12 @@ public class Projects extends AppCompatActivity {
         }
     }
 
-    // Project class to represent the data model
     public static class Project {
         private String projectName;
         private String status;
-        private String subject;
+        private String subject; // Assuming this is a string representation of the subject
         private String userId;
+        private String id;
 
         // Default constructor (required for Firestore)
         public Project() {}
@@ -255,16 +255,44 @@ public class Projects extends AppCompatActivity {
         }
 
         // Getters and setters
-        public String getProjectName() { return projectName; }
-        public void setProjectName(String projectName) { this.projectName = projectName; }
+        public String getProjectName() {
+            return projectName;
+        }
 
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
+        public void setProjectName(String projectName) {
+            this.projectName = projectName;
+        }
 
-        public String getSubject() { return subject; }
-        public void setSubject(String subject) { this.subject = subject; }
+        public String getStatus() {
+            return status;
+        }
 
-        public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public String getSubject() {
+            return subject;
+        }
+
+        public void setSubject(String subject) {  // Add this setter
+            this.subject = subject;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public void setUserId(String userId) {
+            this.userId = userId;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
     }
 }

@@ -79,6 +79,7 @@ public class Firebase {
 
         String userId = currentUser.getUid();
 
+
         db.collection("users").document(userId).collection("projects")
                 .add(newProject)
                 .addOnSuccessListener(documentReference -> {
@@ -102,13 +103,26 @@ public class Firebase {
         String userId = currentUser.getUid();
 
         db.collection("users").document(userId).collection("projects")
-                .whereEqualTo("status", "Active")
+                .whereEqualTo("projectStatus", "Active")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Projects.Project> projects = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Projects.Project project = document.toObject(Projects.Project.class);
-                        project.setUserId(document.getId()); // Set the document ID as the project ID
+                        Projects.Project project = new Projects.Project();
+                        project.setId(document.getId()); // Set the document ID as the project ID
+                        project.setProjectName(document.getString("projectName"));
+                        project.setStatus(document.getString("projectStatus"));
+
+                        // Retrieve projectSubjects as a list of DocumentReferences
+                        List<DocumentReference> subjectRefs = (List<DocumentReference>) document.get("projectSubjects");
+                        if (subjectRefs != null) {
+                            List<String> subjectIds = new ArrayList<>();
+                            for (DocumentReference subjectRef : subjectRefs) {
+                                subjectIds.add(subjectRef.getId());
+                            }
+                            project.setSubject(String.join(", ", subjectIds)); // Store as a comma-separated string
+                        }
+
                         projects.add(project);
                     }
                     listener.onSuccess(projects);
