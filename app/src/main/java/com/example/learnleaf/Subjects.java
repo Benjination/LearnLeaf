@@ -34,6 +34,7 @@ public class Subjects extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private LinearLayout subjectsContainer;
     private ImageView addnew;
+    private Firebase firebase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +45,7 @@ public class Subjects extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         subjectsContainer = findViewById(R.id.subjectsContainer);
         addnew = findViewById(R.id.addnew);
+        firebase = new Firebase(this);
 
         addnew.setOnClickListener(v -> showCreateSubjectDialog());
 
@@ -110,79 +112,47 @@ public class Subjects extends AppCompatActivity {
     }
 
     private void updateSubject(Subject subject, String subjectName, String semester, String color, String status) {
-        // Get the document ID for this subject
-        db.collection("subjects")
-                .whereEqualTo("subjectName", subject.getSubjectName())
-                .whereEqualTo("userId", mAuth.getCurrentUser().getUid())
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId();
+        firebase.updateSubject(subject, subjectName, semester, color, status, new Firebase.OnSubjectUpdatedListener() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(Subjects.this, "Subject updated successfully", Toast.LENGTH_SHORT).show();
+                fetchActiveSubjectsForCurrentUser(); // Refresh the list
+            }
 
-                        // Update the subject
-                        db.collection("subjects").document(documentId)
-                                .update(
-                                        "subjectName", subjectName,
-                                        "semester", semester,
-                                        "subjectColor", color,
-                                        "status", status
-                                )
-                                .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(Subjects.this, "Subject updated successfully", Toast.LENGTH_SHORT).show();
-                                    fetchActiveSubjectsForCurrentUser(); // Refresh the list
-                                })
-                                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error updating subject", Toast.LENGTH_SHORT).show());
-                    }
-                })
-                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error finding subject", Toast.LENGTH_SHORT).show());
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Subjects.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void createNewSubject(String subjectName, String semester, String color) {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        firebase.createNewSubject(subjectName, semester, color, new Firebase.OnSubjectCreatedListener() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(Subjects.this, "Subject created successfully", Toast.LENGTH_SHORT).show();
+                fetchActiveSubjectsForCurrentUser(); // Refresh the list
+            }
 
-        Subject newSubject = new Subject(semester, "Active", color, subjectName, currentUser.getUid());
-
-        db.collection("subjects")
-                .add(newSubject)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(Subjects.this, "Subject created successfully", Toast.LENGTH_SHORT).show();
-                    fetchActiveSubjectsForCurrentUser(); // Refresh the list
-                })
-                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error creating subject", Toast.LENGTH_SHORT).show());
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Subjects.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void fetchActiveSubjectsForCurrentUser() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            // Handle the case where no user is signed in
-            return;
-        }
+        firebase.fetchActiveSubjectsForCurrentUser(new Firebase.OnActiveSubjectsFetchedListener() {
+            @Override
+            public void onSuccess(List<Subject> activeSubjects) {
+                updateUI(activeSubjects);
+            }
 
-        String userId = currentUser.getUid();
-
-        db.collection("subjects")
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("status", "Active")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Subject> activeSubjects = new ArrayList<>();
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Subject subject = document.toObject(Subject.class);
-                        activeSubjects.add(subject);
-                    }
-
-                    // Here you have the list of active subjects for the current user
-                    // You can update your UI or do further processing here
-                    updateUI(activeSubjects);
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(Subjects.this, "Failed to fetch subjects.", Toast.LENGTH_SHORT).show();
-                });
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Subjects.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void showDeleteConfirmationDialog(Subject subject, View blockView) {
@@ -196,30 +166,18 @@ public class Subjects extends AppCompatActivity {
     }
 
     private void deleteSubject(Subject subject, View blockView) {
-        // Get the document ID for this subject
-        db.collection("subjects")
-                .whereEqualTo("subjectName", subject.getSubjectName())
-                .whereEqualTo("userId", mAuth.getCurrentUser().getUid())
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId();
+        firebase.deleteSubject(subject, new Firebase.OnSubjectDeletedListener() {
+            @Override
+            public void onSuccess() {
+                subjectsContainer.removeView(blockView);
+                Toast.makeText(Subjects.this, "Subject deleted successfully", Toast.LENGTH_SHORT).show();
+            }
 
-                        // Delete the subject from Firestore
-                        db.collection("subjects").document(documentId)
-                                .delete()
-                                .addOnSuccessListener(aVoid -> {
-                                    // Remove the view from the UI
-                                    subjectsContainer.removeView(blockView);
-                                    Toast.makeText(Subjects.this, "Subject deleted successfully", Toast.LENGTH_SHORT).show();
-                                })
-                                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error deleting subject", Toast.LENGTH_SHORT).show());
-                    } else {
-                        Toast.makeText(Subjects.this, "Subject not found", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> Toast.makeText(Subjects.this, "Error finding subject", Toast.LENGTH_SHORT).show());
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Subjects.this, errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void updateUI(List<Subject> subjects) {
