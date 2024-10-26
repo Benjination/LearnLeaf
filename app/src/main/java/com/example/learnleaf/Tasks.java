@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -189,6 +190,13 @@ public class Tasks extends AppCompatActivity {
     private void updateUI(List<Task> tasks) {
         tasksContainer.removeAllViews(); // Clear existing views
 
+        if (tasks.isEmpty()) {
+            TextView noSubjectsText = new TextView(this);
+            noSubjectsText.setText("No tasks found");
+            tasksContainer.addView(noSubjectsText);
+            return;
+        }
+
         for (Task task : tasks) {
             View taskView = getLayoutInflater().inflate(R.layout.task_item_block, null);
 
@@ -354,7 +362,7 @@ public class Tasks extends AppCompatActivity {
 
 
         // Constructor with all fields in the specified order
-        public class Task {
+        public static class Task {
             public String id;
             public String userId;
             public String assignment;
@@ -385,33 +393,101 @@ public class Tasks extends AppCompatActivity {
             }
 
             // Getters and setters
-            public String getAssignment() {
-                return assignment;
-            }
+
 
             public String getStatus() {
                 return status;
             }
 
-            public String getSubject() {
-                return subject;
-            }
+
 
             public void setSubject(String subject) {
                 this.subject = subject;
             }
 
-            public String getUserId() {
-                return userId;
+
+
+
+
+
+
+
+
+            public String getId() {
+                return id;
+            }
+
+            public String getAssignment() {
+                return assignment;
+            }
+
+            public String getDescription() {
+                return description;
             }
 
             public Timestamp getDueDate() {
                 return dueDate;
             }
 
+            public String getPriority() {
+                return priority;
+            }
+
+            public String getSubject() {
+                return subject;
+            }
+
+
+
+
+
+
+
+            public String getUserId() {
+                return userId;
+            }
+
+            // Setters
+            public void setId(String id) {
+                this.id = id;
+            }
+
+            public void setAssignment(String assignment) {
+                this.assignment = assignment;
+            }
+
+            public void setDescription(String description) {
+                this.description = description;
+            }
+
+            public void setDueDate(Timestamp dueDate) {
+                this.dueDate = dueDate;
+            }
+
+            public void setPriority(String priority) {
+                this.priority = priority;
+            }
+
+
+
+            public void setStatus(String status) {
+                this.status = status;
+            }
+
+
+
+            public void setUserId(String userId) {
+                this.userId = userId;
+            }
+
+            // Additional methods
             @Exclude
             public Date getDueDateAsDate() {
                 return dueDate != null ? dueDate.toDate() : null;
+            }
+
+            public void setDueDateFromDate(Date date) {
+                this.dueDate = date != null ? new Timestamp(date) : null;
             }
 
         }

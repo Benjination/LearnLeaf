@@ -78,41 +78,6 @@ public class Projects extends AppCompatActivity {
         builder.show();
     }
 
-    private void showEditProjectDialog(Project project) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Edit Project");
-
-        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_project, null);
-        final EditText projectNameInput = viewInflated.findViewById(R.id.projectNameInput);
-        final EditText subjectInput = viewInflated.findViewById(R.id.subjectInput);
-        final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
-
-        // Pre-fill the fields with current project data
-        String currentProjectName = project.getProjectName(); // Assuming this method exists
-        projectNameInput.setText(currentProjectName);
-        subjectInput.setText(project.getSubject());
-
-        // Set up the status spinner
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.status_array, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        statusSpinner.setAdapter(adapter);
-        int spinnerPosition = adapter.getPosition(project.getStatus());
-        statusSpinner.setSelection(spinnerPosition);
-
-        builder.setView(viewInflated);
-
-        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            String newProjectName = projectNameInput.getText().toString();
-            String subject = subjectInput.getText().toString();
-            String status = statusSpinner.getSelectedItem().toString();
-            updateProject(currentProjectName, newProjectName, subject, status);
-        });
-        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
-
-        builder.show();
-    }
-
     private void createNewProject(String projectName, String subject, String status) {
         firebase.createNewProject(projectName, subject, status, new Firebase.OnProjectCreatedListener() {
             @Override
@@ -143,6 +108,39 @@ public class Projects extends AppCompatActivity {
     }
 
 
+    private void showEditProjectDialog(Project project) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Edit Project");
+
+        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_project, null);
+        final EditText projectNameInput = viewInflated.findViewById(R.id.projectNameInput);
+        final EditText subjectInput = viewInflated.findViewById(R.id.subjectInput);
+        final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
+
+        // Pre-fill the fields with current project data
+        projectNameInput.setText(project.getProjectName());
+        subjectInput.setText(project.getSubject());
+
+        // Set up the status spinner
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.status_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        statusSpinner.setAdapter(adapter);
+        int spinnerPosition = adapter.getPosition(project.getStatus());
+        statusSpinner.setSelection(spinnerPosition);
+
+        builder.setView(viewInflated);
+
+        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+            String projectName = projectNameInput.getText().toString();
+            String subject = subjectInput.getText().toString();
+            String status = statusSpinner.getSelectedItem().toString();
+            updateProject(project.projectName, projectName, subject, status);
+        });
+        builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
 
     private void deleteProject(String projectName, View blockView) {
         FirebaseUser currentUser = firebase.getCurrentUser();
