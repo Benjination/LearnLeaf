@@ -2,13 +2,11 @@ package com.example.learnleaf;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -16,29 +14,26 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Calendar;
-import com.google.firebase.firestore.Query;
 
 public class Tasks extends AppCompatActivity {
     private LinearLayout tasksContainer;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
+    private Firebase firebase;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +43,7 @@ public class Tasks extends AppCompatActivity {
         tasksContainer = findViewById(R.id.tasksContainer);
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
+        firebase = new Firebase(this);
 
         fetchTasksForCurrentUser();
     }
@@ -170,63 +166,25 @@ public class Tasks extends AppCompatActivity {
         }
     }
 
+
     private void fetchTasksForCurrentUser() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            Log.d("TaskFetch", "No current user");
-            updateUI(new ArrayList<>()); // Update UI with empty list
-            return;
-        }
-
-        String userId = currentUser.getUid();
-        Log.d("TaskFetch", "Fetching tasks for user ID: " + userId);
-
-        // Show loading indicator
         //showLoadingIndicator();
+        firebase.fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
+            @Override
+            public void onSuccess(List<Task> tasks) {
+                updateUI(tasks);
+                //hideLoadingIndicator();
+            }
 
-        db.collection("tasks")
-                .whereEqualTo("userId", userId)
-                .whereIn("status", Arrays.asList("Not Started", "Active", "In Progress"))
-                .orderBy("dueDate", Query.Direction.ASCENDING)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Task> tasks = new ArrayList<>();
-                    Log.d("TaskFetch", "Query returned " + queryDocumentSnapshots.size() + " documents");
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Log.d("TaskFetch", "Processing document: " + document.getId());
-                        try {
-                            Task task = new Task();
-                            task.id = document.getId();
-                            task.assignment = document.getString("assignment");
-                            task.description = document.getString("description");
-                            task.dueDate = document.getTimestamp("dueDate");
-                            task.priority = document.getString("priority");
-                            task.project = document.getString("project");
-                            task.startDate = document.getTimestamp("startDate");
-                            task.status = document.getString("status");
-                            task.subject = document.getString("subject");
-                            task.userId = document.getString("userId");
-
-                            Log.d("TaskFetch", "Fetched task - Assignment: " + task.assignment +
-                                    ", Status: " + task.status +
-                                    ", UserId: " + task.userId +
-                                    ", DueDate: " + (task.dueDate != null ? task.dueDate.toDate() : "null"));
-                            tasks.add(task);
-                        } catch (Exception e) {
-                            Log.e("TaskFetch", "Error processing document " + document.getId(), e);
-                        }
-                    }
-                    Log.d("TaskFetch", "Total tasks fetched: " + tasks.size());
-                    updateUI(tasks);
-                    //hideLoadingIndicator();
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("TaskFetch", "Error fetching tasks", e);
-                    Toast.makeText(Tasks.this, "Failed to fetch tasks: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    updateUI(new ArrayList<>()); // Update UI with empty list
-                    //hideLoadingIndicator();
-                });
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Tasks.this, errorMessage, Toast.LENGTH_SHORT).show();
+                updateUI(new ArrayList<>()); // Update UI with empty list
+                //hideLoadingIndicator();
+            }
+        });
     }
+
 
     private void updateUI(List<Task> tasks) {
         tasksContainer.removeAllViews(); // Clear existing views
@@ -274,21 +232,24 @@ public class Tasks extends AppCompatActivity {
                 .setTitle("Delete Task")
                 .setMessage("Are you sure you want to delete this task?")
                 .setPositiveButton("Yes", (dialog, which) -> {
-                    if (task.id == null) {
+                    if (task.getUserId() == null) {
                         Toast.makeText(this, "Error: Task ID is null", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
-                    db.collection("tasks").document(task.id)
-                            .delete()
-                            .addOnSuccessListener(aVoid -> {
-                                Toast.makeText(Tasks.this, "Task deleted successfully", Toast.LENGTH_SHORT).show();
-                                // Remove the task view from the container
-                                tasksContainer.removeView(taskView);
-                            })
-                            .addOnFailureListener(e -> {
-                                Toast.makeText(Tasks.this, "Error deleting task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                            });
+                    firebase.deleteTask(task.getUserId(), new Firebase.OnTaskDeletedListener() {
+                        @Override
+                        public void onSuccess() {
+                            Toast.makeText(Tasks.this, "Task deleted successfully", Toast.LENGTH_SHORT).show();
+                            // Remove the task view from the container
+                            tasksContainer.removeView(taskView);
+                        }
+
+                        @Override
+                        public void onFailure(String errorMessage) {
+                            Toast.makeText(Tasks.this, errorMessage, Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 })
                 .setNegativeButton("No", null)
                 .show();
@@ -428,40 +389,8 @@ public class Tasks extends AppCompatActivity {
                 return assignment;
             }
 
-            public void setAssignment(String assignment) {
-                this.assignment = assignment;
-            }
-
-            public String getDescription() {
-                return description;
-            }
-
-            public void setDescription(String description) {
-                this.description = description;
-            }
-
-            public String getPriority() {
-                return priority;
-            }
-
-            public void setPriority(String priority) {
-                this.priority = priority;
-            }
-
-            public String getProject() {
-                return project;
-            }
-
-            public void setProject(String project) {
-                this.project = project;
-            }
-
             public String getStatus() {
                 return status;
-            }
-
-            public void setStatus(String status) {
-                this.status = status;
             }
 
             public String getSubject() {
@@ -476,34 +405,8 @@ public class Tasks extends AppCompatActivity {
                 return userId;
             }
 
-            public void setUserId(String userId) {
-                this.userId = userId;
-            }
-
-            public Timestamp getStartDate() {
-                return startDate;
-            }
-
-            public void setStartDate(Timestamp startDate) {
-                this.startDate = startDate;
-            }
-
             public Timestamp getDueDate() {
                 return dueDate;
-            }
-
-            public void setDueDate(Timestamp dueDate) {
-                this.dueDate = dueDate;
-            }
-
-            @Exclude
-            public Date getStartDateAsDate() {
-                return startDate != null ? startDate.toDate() : null;
-            }
-
-            @Exclude
-            public void setStartDateFromDate(Date date) {
-                this.startDate = date != null ? new Timestamp(date) : null;
             }
 
             @Exclude
@@ -511,46 +414,6 @@ public class Tasks extends AppCompatActivity {
                 return dueDate != null ? dueDate.toDate() : null;
             }
 
-            @Exclude
-            public void setDueDateFromDate(Date date) {
-                this.dueDate = date != null ? new Timestamp(date) : null;
-            }
-
-            @Exclude
-            public String getFormattedStartDate() {
-                if (startDate == null) return null;
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-                return sdf.format(startDate.toDate());
-            }
-
-            @Exclude
-            public String getFormattedDueDate() {
-                if (dueDate == null) return null;
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-                return sdf.format(dueDate.toDate());
-            }
-
-            @Exclude
-            public void setStartDateFromString(String dateString) throws ParseException {
-                if (dateString == null) {
-                    this.startDate = null;
-                } else {
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-                    Date date = sdf.parse(dateString);
-                    this.startDate = new Timestamp(date);
-                }
-            }
-
-            @Exclude
-            public void setDueDateFromString(String dateString) throws ParseException {
-                if (dateString == null) {
-                    this.dueDate = null;
-                } else {
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-                    Date date = sdf.parse(dateString);
-                    this.dueDate = new Timestamp(date);
-                }
-            }
         }
 
     }

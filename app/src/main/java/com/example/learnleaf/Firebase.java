@@ -1,15 +1,18 @@
 package com.example.learnleaf;
 
 import android.content.Context;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -27,6 +30,42 @@ public class Firebase {
         this.mAuth = FirebaseAuth.getInstance();
         this.db = FirebaseFirestore.getInstance();
     }
+
+    public FirebaseUser getCurrentUser() {
+        return mAuth.getCurrentUser();
+    }
+
+    public interface OnProjectDeletedListener {
+        void onSuccess();
+        void onFailure(String errorMessage);
+    }
+
+    //Used in Login page to check the input email and password, and Sign in
+    public void signIn(String email, String password, final AuthCallback callback) {
+        mAuth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        callback.onSuccess(mAuth.getCurrentUser());
+                    } else {
+                        callback.onError(Objects.requireNonNull(task.getException()).getMessage());
+                    }
+                });
+    }
+
+    public static synchronized Firebase getInstance(Context context) {
+        if (instance == null) {
+            instance = new Firebase(context);
+        }
+        return instance;
+    }
+
+    //Collects user information of currently signed in user from Firestore
+    public interface AuthCallback {
+        void onSuccess(FirebaseUser user);
+        void onError(String errorMessage);
+    }
+
+    //------------------------------------Projects
 
     public void createNewProject(String projectName, String subject, String status, OnProjectCreatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -143,6 +182,8 @@ public class Firebase {
         void onSuccess();
         void onFailure(String errorMessage);
     }
+
+    //--------------------------------Subjects
 
     public void updateSubject(Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, OnSubjectUpdatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -262,37 +303,71 @@ public class Firebase {
         void onFailure(String errorMessage);
     }
 
-    public FirebaseUser getCurrentUser() {
-        return mAuth.getCurrentUser();
-    }
+    //-------------------------------------TASKS
 
-    public interface OnProjectDeletedListener {
-        void onSuccess();
-        void onFailure(String errorMessage);
-    }
+    public void fetchTasksForCurrentUser(OnTasksFetchedListener listener) {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            Log.d("TaskFetch", "No current user");
+            listener.onSuccess(new ArrayList<>());
+            return;
+        }
 
-    //Used in Login page to check the input email and password, and Sign in
-    public void signIn(String email, String password, final AuthCallback callback) {
-        mAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        callback.onSuccess(mAuth.getCurrentUser());
-                    } else {
-                        callback.onError(Objects.requireNonNull(task.getException()).getMessage());
+        String userId = currentUser.getUid();
+        Log.d("TaskFetch", "Fetching tasks for user ID: " + userId);
+
+        db.collection("tasks")
+                .whereEqualTo("userId", userId)
+                .whereIn("status", Arrays.asList("Not Started", "Active", "In Progress"))
+                .orderBy("dueDate", Query.Direction.ASCENDING)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<Tasks.Task> tasks = new ArrayList<>();
+                    Log.d("TaskFetch", "Query returned " + queryDocumentSnapshots.size() + " documents");
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        Log.d("TaskFetch", "Processing document: " + document.getId());
+                        try {
+                            Tasks.Task task = document.toObject(Tasks.Task.class);
+                            // Set the document ID if needed
+                            // task.setId(document.getId());
+                            Log.d("TaskFetch", "Fetched task - Assignment: " + task.getAssignment() +
+                                    ", Status: " + task.getStatus() +
+                                    ", UserId: " + task.getUserId() +
+                                    ", DueDate: " + (task.getDueDate() != null ? task.getDueDateAsDate() : "null"));
+                            tasks.add(task);
+                        } catch (Exception e) {
+                            Log.e("TaskFetch", "Error processing document " + document.getId(), e);
+                        }
                     }
+                    Log.d("TaskFetch", "Total tasks fetched: " + tasks.size());
+                    listener.onSuccess(tasks);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("TaskFetch", "Error fetching tasks", e);
+                    listener.onFailure("Failed to fetch tasks: " + e.getMessage());
                 });
     }
 
-    public static synchronized Firebase getInstance(Context context) {
-        if (instance == null) {
-            instance = new Firebase(context);
+    public void deleteTask(String taskId, OnTaskDeletedListener listener) {
+        if (taskId == null || taskId.isEmpty()) {
+            listener.onFailure("Error: Task ID is null or empty");
+            return;
         }
-        return instance;
+
+        db.collection("tasks").document(taskId)
+                .delete()
+                .addOnSuccessListener(aVoid -> listener.onSuccess())
+                .addOnFailureListener(e -> listener.onFailure("Error deleting task: " + e.getMessage()));
     }
 
-    //Collects user information of currently signed in user from Firestore
-    public interface AuthCallback {
-        void onSuccess(FirebaseUser user);
-        void onError(String errorMessage);
+    public interface OnTaskDeletedListener {
+        void onSuccess();
+        void onFailure(String errorMessage);
     }
+    public interface OnTasksFetchedListener {
+        void onSuccess(List<Tasks.Task> tasks);
+        void onFailure(String errorMessage);
+    }
+
+
 }
