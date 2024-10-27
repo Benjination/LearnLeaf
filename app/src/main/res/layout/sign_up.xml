@@ -6,9 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/material_dynamic_primary90"
-    tools:context=".SignUp"
-    tools:ignore="ExtraText"
-    tools:visibility="visible">
+    tools:context=".SignUp">
 
     <Button
         android:id="@+id/submit"

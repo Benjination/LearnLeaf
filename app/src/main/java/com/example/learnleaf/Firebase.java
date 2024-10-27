@@ -1,6 +1,7 @@
 package com.example.learnleaf;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.util.Log;
 
 import com.google.firebase.Timestamp;
@@ -9,10 +10,12 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -135,14 +138,14 @@ public class Firebase {
 
         String userId = currentUser.getUid();
 
+        // Query to find the project by name and user ID
         db.collection("users").document(userId).collection("projects")
                 .whereEqualTo("projectName", projectName)
-                .whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
                         DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId();
+                        String documentId = documentSnapshot.getId(); // Get document ID
 
                         // Delete the project document
                         db.collection("users").document(userId).collection("projects").document(documentId)
@@ -297,7 +300,7 @@ public class Firebase {
 
         db.collection("users").document(userId).collection("subjects")
                 .whereEqualTo("subjectName", subject.getSubjectName())
-                .whereEqualTo("userId", userId)
+                //.whereEqualTo("userId", userId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
@@ -337,6 +340,8 @@ public class Firebase {
 
     //-------------------------------------TASKS
 
+
+
     public void fetchTasksForCurrentUser(OnTasksFetchedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -353,38 +358,12 @@ public class Firebase {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Tasks.Task> tasks = new ArrayList<>();
-                    Log.d("TaskFetch", "Query returned " + queryDocumentSnapshots.size() + " documents");
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Log.d("TaskFetch", "Processing document: " + document.getId());
-                        try {
-                            Tasks.Task task = new Tasks.Task();
-                            task.setId(document.getId());
-                            task.setAssignment(document.getString("taskName"));
-                            task.setStatus(document.getString("taskStatus"));
-
-                            // Handle subject reference
-                            DocumentReference subjectRef = document.getDocumentReference("taskSubject");
-                            if (subjectRef != null) {
-                                task.setSubject(subjectRef.getId());
-                            }
-
-                            // Set userId (if needed)
-                            task.setUserId(userId);
-
-                            // Handle dueDate if it exists in your Firebase document
-                            Timestamp dueDate = document.getTimestamp("dueDate");
-                            if (dueDate != null) {
-                                task.setDueDate(dueDate);
-                            }
-
-                            Log.d("TaskFetch", "Fetched task - Assignment: " + task.getAssignment() +
-                                    ", Status: " + task.getStatus() +
-                                    ", Subject: " + task.getSubject() +
-                                    ", DueDate: " + (task.getDueDate() != null ? task.getDueDateAsDate() : "null"));
-                            tasks.add(task);
-                        } catch (Exception e) {
-                            Log.e("TaskFetch", "Error processing document " + document.getId(), e);
-                        }
+                        Tasks.Task task = document.toObject(Tasks.Task.class);
+                        task.setId(document.getId());
+                        task.setUserId(userId);
+                        tasks.add(task);
+                        Log.d("TaskFetch", "Fetched task: " + task.taskName);
                     }
                     Log.d("TaskFetch", "Total tasks fetched: " + tasks.size());
                     listener.onSuccess(tasks);
@@ -395,26 +374,7 @@ public class Firebase {
                 });
     }
 
-    public void deleteTask(String taskId, OnTaskDeletedListener listener) {
-        if (taskId == null || taskId.isEmpty()) {
-            listener.onFailure("Error: Task ID is null or empty");
-            return;
-        }
 
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            listener.onFailure("User not signed in");
-            return;
-        }
-
-        String userId = currentUser.getUid();
-
-        db.collection("users").document(userId).collection("tasks")
-                .document(taskId)
-                .delete()
-                .addOnSuccessListener(aVoid -> listener.onSuccess())
-                .addOnFailureListener(e -> listener.onFailure("Error deleting task: " + e.getMessage()));
-    }
 
     public interface OnTaskDeletedListener {
         void onSuccess();

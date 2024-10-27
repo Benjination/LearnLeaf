@@ -13,8 +13,17 @@
             android:id="@+id/assignmentInput"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:hint="Assignment"
+            android:hint="Task Name"
             android:inputType="text"
+            android:layout_marginBottom="8dp"/>
+
+        <EditText
+            android:id="@+id/descriptionInput"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:hint="Description"
+            android:inputType="textMultiLine"
+            android:lines="3"
             android:layout_marginBottom="8dp"/>
 
         <EditText
@@ -33,34 +42,9 @@
             android:inputType="text"
             android:layout_marginBottom="8dp"/>
 
-        <EditText
-            android:id="@+id/descriptionInput"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:hint="Description"
-            android:inputType="textMultiLine"
-            android:lines="3"
-            android:layout_marginBottom="8dp"/>
-
-        <EditText
-            android:id="@+id/startDateInput"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:hint="Start Date (MM/dd/yyyy)"
-            android:inputType="date"
-            android:layout_marginBottom="8dp"/>
-
-        <EditText
-            android:id="@+id/dueDateInput"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:hint="Due Date (MM/dd/yyyy)"
-            android:inputType="date"
-            android:layout_marginBottom="8dp"/>
-
         <TextView
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:text="Priority"
             android:layout_marginBottom="4dp"/>
 
@@ -72,7 +56,7 @@
 
         <TextView
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:text="Status"
             android:layout_marginBottom="4dp"/>
 

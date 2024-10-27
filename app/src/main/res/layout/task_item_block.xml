@@ -13,116 +13,110 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
 
         <TextView
-            android:id="@+id/assignmentTextView"
+            android:id="@+id/taskNameTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
             android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/subjectTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="16sp" />
-
-            <TextView
-                android:id="@+id/projectTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="16sp" />
-        </LinearLayout>
+            android:textStyle="bold"
+            android:text="Project1" /> <!-- Example task name -->
 
         <TextView
-            android:id="@+id/descriptionTextView"
+            android:id="@+id/taskDescriptionTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:text="xxx" /> <!-- Example task description -->
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
             android:orientation="horizontal">
 
             <TextView
-                android:id="@+id/priorityTextView"
+                android:id="@+id/taskPriorityTextView"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="16sp" />
+                android:textSize="16sp"
+                android:text="Low" /> <!-- Example task priority -->
 
             <TextView
-                android:id="@+id/statusTextView"
+                android:id="@+id/taskStatusTextView"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="16sp" />
+                android:textSize="16sp"
+                android:text="Not Started" /> <!-- Example task status -->
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/taskProjectTextView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="16sp"
+                android:text="Project" /> <!-- Example task project -->
+
+            <TextView
+                android:id="@+id/taskSubjectTextView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="16sp"
+                android:text="SW Testing" /> <!-- Example task subject -->
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/startDateTextView"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="16sp" />
+                android:textSize = "16sp"/>
 
             <TextView
                 android:id="@+id/dueDateTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="16sp" />
+                android:layout_width = "0dp"
+                android:layout_height = "wrap_content"/>
         </LinearLayout>
 
-
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
+            android:layout_width = "match_parent"
+            android:layout_height = "wrap_content">
 
             <ImageButton
                 android:id="@+id/editButton"
+                android:contentDescription="TODO"
+                app:tint="?attr/colorControlNormal"
+                app:srcCompat="@drawable/edit"
                 android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:contentDescription="Edit item"
-                android:scaleType="fitCenter"
-                android:src="@drawable/edit" />
+                android:layout_height="48dp"/>
 
             <Space
-                android:layout_width="200dp"
-                android:layout_height="wrap_content" />
+                android:id="@+id/space"
+                android:layout_width = "200dp"
+                android:layout_height = "wrap_content"/>
 
             <ImageButton
                 android:id="@+id/deleteButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:background="?android:attr/selectableItemBackground"
-                android:contentDescription="Delete item"
-                android:scaleType="fitCenter"
-                android:src="@drawable/tinytrash" />
+                android:contentDescription="TODO"
+                app:tint="?attr/colorControlNormal"
+                app:srcCompat="@drawable/tinytrash"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

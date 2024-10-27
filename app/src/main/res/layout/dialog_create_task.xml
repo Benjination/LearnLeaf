@@ -5,58 +5,40 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-
-
+    <EditText
+        android:id="@+id/taskSubjectTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Subject" />
 
     <EditText
-        android:id="@+id/projectInput"
+        android:id="@+id/taskProjectTextView"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:hint="Project" />
 
     <EditText
-        android:id="@+id/subjectInput"
+        android:id="@+id/taskNameTextView"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:hint="Subject
-" />
-
-    <EditText
-        android:id="@+id/assignmentInput"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:hint="Assignment" />
 
     <EditText
-        android:id="@+id/descriptionInput"
+        android:id="@+id/taskDescriptionInput"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="wrap_content"
         android:hint="Description" />
 
-    <TextView
-        android:id="@+id/startDateInput"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:hint="Start Date"
-        android:clickable="true"
-        android:focusable="true" />
-
-    <TextView
-        android:id="@+id/dueDateInput"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:hint="Due Date"
-        android:clickable="true"
-        android:focusable="true" />
 
     <Spinner
         android:id="@+id/prioritySpinner"
         android:layout_width="match_parent"
-        android:layout_height="48dp" />
+        android:layout_height="wrap_content" />
 
     <Spinner
         android:id="@+id/statusSpinner"
         android:layout_width="match_parent"
-        android:layout_height="48dp" />
+        android:layout_height="wrap_content" />
+
 
 </LinearLayout>
