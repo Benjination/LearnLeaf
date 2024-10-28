@@ -19,6 +19,7 @@ import androidx.cardview.widget.CardView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -26,6 +27,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Projects extends AppCompatActivity {
     private FirebaseFirestore db;
@@ -149,7 +151,7 @@ public class Projects extends AppCompatActivity {
             List<String> projectSubjects = new ArrayList<>(); // Initialize an empty list or modify as needed
 
             // Use the document ID directly from the project object if needed
-            updateProject(project.getDocumentId(), projectName, projectDescription, status, projectSubjects); // Updated call
+            updateProject(project.getProjectName(), projectName, projectDescription, status, projectSubjects); // Updated call
         });
 
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
@@ -243,8 +245,16 @@ public class Projects extends AppCompatActivity {
             nameTextView.setText(project.getProjectName());
             statusTextView.setText("Status: " + project.getProjectStatus());
 
-            // Display subjects as a comma-separated string
-            String subjectsString = String.join(", ", project.getProjectSubjects());
+            // Convert DocumentReferences to strings (using their IDs)
+            List<String> subjectIds = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                subjectIds = project.getProjectSubjects().stream()
+                        .map(DocumentReference::getId)
+                        .collect(Collectors.toList());
+            }
+
+            // Now join the string IDs
+            String subjectsString = String.join(", ", subjectIds);
             extraTextView.setText("Subjects: " + subjectsString);
 
             String contentDescription = String.format("Project: %s, Status: %s, Subjects: %s",
@@ -268,8 +278,7 @@ public class Projects extends AppCompatActivity {
         private String projectName;
         private String projectDescription; // New attribute
         private String projectStatus; // New attribute
-        private List<String> projectSubjects; // New attribute
-        private String documentId;
+        private List<DocumentReference> projectSubjects; // New attribute
 
         // No-argument constructor
         public Project() {
@@ -313,20 +322,13 @@ public class Projects extends AppCompatActivity {
             this.projectStatus = projectStatus;
         }
 
-        public List<String> getProjectSubjects() {
+        public List<DocumentReference> getProjectSubjects() {
             return projectSubjects;
         }
 
-        public void setProjectSubjects(List<String> subjects) {
+        public void setProjectSubjects(List<DocumentReference> subjects) {
             this.projectSubjects = subjects;
         }
 
-        public String getDocumentId() {
-            return documentId;
-        }
-
-        public void setDocumentId(String documentId) {
-            this.documentId = documentId; // Implement this method
-        }
     }
 }

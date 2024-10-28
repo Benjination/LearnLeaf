@@ -23,14 +23,14 @@
             android:layout_height="wrap_content"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:text="Project1" /> <!-- Example task name -->
+            android:text="Project1" />
 
         <TextView
             android:id="@+id/taskDescriptionTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
-            android:text="xxx" /> <!-- Example task description -->
+            android:text="xxx" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -43,7 +43,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textSize="16sp"
-                android:text="Low" /> <!-- Example task priority -->
+                android:text="Low" />
 
             <TextView
                 android:id="@+id/taskStatusTextView"
@@ -51,7 +51,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textSize="16sp"
-                android:text="Not Started" /> <!-- Example task status -->
+                android:text="Not Started" />
         </LinearLayout>
 
         <LinearLayout
@@ -65,7 +65,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textSize="16sp"
-                android:text="Project" /> <!-- Example task project -->
+                android:text="Project" />
 
             <TextView
                 android:id="@+id/taskSubjectTextView"
@@ -73,7 +73,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:textSize="16sp"
-                android:text="SW Testing" /> <!-- Example task subject -->
+                android:text="SW Testing" />
         </LinearLayout>
 
         <LinearLayout
@@ -83,38 +83,52 @@
 
             <TextView
                 android:id="@+id/startDateTextView"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textSize = "16sp"/>
+                android:layout_weight="1"
+                android:textSize="14sp"
+                android:text="Start: DD/MM/YYYY" />
 
             <TextView
                 android:id="@+id/dueDateTextView"
-                android:layout_width = "0dp"
-                android:layout_height = "wrap_content"/>
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="14sp"
+                android:text="Due: DD/MM/YYYY" />
         </LinearLayout>
 
+        <TextView
+            android:id="@+id/dueTimeTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:text="Due Time: HH:MM" />
+
         <LinearLayout
-            android:layout_width = "match_parent"
-            android:layout_height = "wrap_content">
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
 
             <ImageButton
                 android:id="@+id/editButton"
-                android:contentDescription="TODO"
-                app:tint="?attr/colorControlNormal"
-                app:srcCompat="@drawable/edit"
                 android:layout_width="48dp"
-                android:layout_height="48dp"/>
+                android:layout_height="48dp"
+                android:contentDescription="Edit task"
+                app:tint="?attr/colorControlNormal"
+                app:srcCompat="@drawable/edit"/>
 
             <Space
-                android:id="@+id/space"
-                android:layout_width = "200dp"
-                android:layout_height = "wrap_content"/>
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
 
             <ImageButton
                 android:id="@+id/deleteButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:contentDescription="TODO"
+                android:contentDescription="Delete task"
                 app:tint="?attr/colorControlNormal"
                 app:srcCompat="@drawable/tinytrash"/>
         </LinearLayout>

@@ -2,6 +2,7 @@ package com.example.learnleaf;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -24,6 +25,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.PropertyName;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
@@ -239,11 +241,16 @@ public class Subjects extends AppCompatActivity {
 
     // Helper method to parse color string to color int
     private int parseColor(String colorString) {
+        if (colorString == null || colorString.isEmpty()) {
+            // Return a default color or throw a more specific exception
+            return Color.BLACK; // or any other default color
+        }
         try {
             return Color.parseColor(colorString);
         } catch (IllegalArgumentException e) {
-            // Return a default color if parsing fails
-            return ContextCompat.getColor(this, android.R.color.black);
+            // Handle invalid color string
+            Log.e("Subjects", "Invalid color string: " + colorString);
+            return Color.BLACK; // or any other default color
         }
     }
 
@@ -255,32 +262,34 @@ public class Subjects extends AppCompatActivity {
 
     // Subject class to represent the data model
     public static class Subject {
-        private String semester;
-        private String status;
+
+        private String subjectSemester;
+        private String subjectStatus;
         private String subjectColor;
         private String subjectName;
-        private String userId;
-        private String id;
+        private String subjectDescription;
+
 
         // Default constructor (required for Firestore)
         public Subject() {}
 
         // Constructor with all fields
-        public Subject(String semester, String status, String subjectColor, String subjectName, String userId) {
-            this.semester = semester;
-            this.status = status;
+        public Subject(String semester, String status, String subjectColor, String subjectName) {
+            this.subjectSemester = semester;
+            this.subjectStatus = status;
             this.subjectColor = subjectColor;
             this.subjectName = subjectName;
-            this.userId = userId;
         }
 
         // Getters
+        @PropertyName("semester")
         public String getSemester() {
-            return semester;
+            return subjectSemester;
         }
 
+        @PropertyName("status")
         public String getStatus() {
-            return status;
+            return subjectStatus;
         }
 
         public String getSubjectColor() {
@@ -291,46 +300,6 @@ public class Subjects extends AppCompatActivity {
             return subjectName;
         }
 
-        public String getUserId() {
-            return userId;
-        }
-
-        // Setters
-        public void setSemester(String semester) {
-            this.semester = semester;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public void setSubjectColor(String subjectColor) {
-            this.subjectColor = subjectColor;
-        }
-
-        public void setSubjectName(String subjectName) {
-            this.subjectName = subjectName;
-        }
-
-        public void setUserId(String userId) {
-            this.userId = userId;
-        }
-
-        public void setId(String id) {
-            this.id = id; // Assuming you have an id field in your Subject class
-        }
-
-        // Optional: Override toString() method for easy printing/debugging
-        @Override
-        public String toString() {
-            return "Subject{" +
-                    "semester='" + semester + '\'' +
-                    ", status='" + status + '\'' +
-                    ", subjectColor='" + subjectColor + '\'' +
-                    ", subjectName='" + subjectName + '\'' +
-                    ", userId='" + userId + '\'' +
-                    '}';
-        }
     }
 
 

@@ -15,6 +15,8 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Currency;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -33,7 +35,8 @@ public class Firebase {
         this.mAuth = FirebaseAuth.getInstance();
         this.db = FirebaseFirestore.getInstance();
     }
-
+    public static ArrayList<Subjects.Subject> localSubjects = new ArrayList<>();
+    public static ArrayList<Projects.Project> localProjects = new ArrayList<>();
     public FirebaseUser getCurrentUser() {
         return mAuth.getCurrentUser();
     }
@@ -67,22 +70,31 @@ public class Firebase {
 
     //------------------------------------Projects
 
-    public void createNewProject(String projectName, String projectDescription, String projectStatus, List<String> projectSubjects, OnProjectCreatedListener listener) {
+    public void createNewProject(String projectName, String projectDescription, String projectStatus, List<String> subjectIds, OnProjectCreatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("User not signed in");
             return;
         }
 
-        Projects.Project newProject = new Projects.Project(projectName, projectDescription, projectStatus);
-        newProject.setProjectSubjects(projectSubjects); // Set the list of subjects
-
         String userId = currentUser.getUid();
 
+        // Create a new Project object
+        Projects.Project newProject = new Projects.Project(projectName, projectDescription, projectStatus);
+
+        // Convert subject IDs to DocumentReferences
+        List<DocumentReference> subjectReferences = new ArrayList<>();
+        for (String subjectId : subjectIds) {
+            DocumentReference subjectRef = db.collection("users").document(userId).collection("subjects").document(subjectId);
+            subjectReferences.add(subjectRef);
+        }
+        newProject.setProjectSubjects(subjectReferences);
+
+        // Add the new project to Firestore
         db.collection("users").document(userId).collection("projects")
                 .add(newProject)
                 .addOnSuccessListener(documentReference -> {
-                    listener.onSuccess(); // Notify success
+                    listener.onSuccess();
                 })
                 .addOnFailureListener(e -> listener.onFailure("Error creating project: " + e.getMessage()));
     }
@@ -96,32 +108,17 @@ public class Firebase {
             return;
         }
 
-        String userId = currentUser.getUid();
-
-        db.collection("users").document(userId).collection("projects")
-                .whereEqualTo("projectStatus", "Active")
+        db.collection("users").document(currentUser.getUid()).collection("projects")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Projects.Project> projects = new ArrayList<>();
+                    localProjects.clear();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Projects.Project project = document.toObject(Projects.Project.class);
-                        // Optionally, store the document ID if needed
-                        project.setDocumentId(document.getId()); // Assuming you add a method to store the document ID
-
-                        // Set other project fields
-                        project.setProjectName(document.getString("projectName"));
-                        project.setProjectDescription(document.getString("projectDescription"));
-                        project.setProjectStatus(document.getString("projectStatus"));
-
-                        // Retrieve projectSubjects as a list of strings
-                        List<String> subjectIds = (List<String>) document.get("projectSubjects");
-                        if (subjectIds != null) {
-                            project.setProjectSubjects(subjectIds); // Set the list of subjects directly
+                        if (project != null) {
+                            localProjects.add(project);
                         }
-
-                        projects.add(project);
                     }
-                    listener.onSuccess(projects);
+                    listener.onSuccess(localProjects);
                 })
                 .addOnFailureListener(e -> {
                     listener.onFailure("Failed to fetch projects: " + e.getMessage());
@@ -159,39 +156,6 @@ public class Firebase {
                 .addOnFailureListener(e -> listener.onFailure("Error finding project: " + e.getMessage()));
     }
 
-    public void updateProject(String currentProjectName, String newProjectName, String newSubject, String newStatus, OnProjectUpdatedListener listener) {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            listener.onFailure("User not signed in");
-            return;
-        }
-
-        String userId = currentUser.getUid();
-
-        db.collection("users").document(userId).collection("projects")
-                .whereEqualTo("projectName", currentProjectName)
-                .whereEqualTo("userId", userId)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId();
-
-                        // Update the project document
-                        db.collection("users").document(userId).collection("projects").document(documentId)
-                                .update(
-                                        "projectName", newProjectName,
-                                        "subject", newSubject,
-                                        "status", newStatus
-                                )
-                                .addOnSuccessListener(aVoid -> listener.onSuccess())
-                                .addOnFailureListener(e -> listener.onFailure("Error updating project: " + e.getMessage()));
-                    } else {
-                        listener.onFailure("Project not found");
-                    }
-                })
-                .addOnFailureListener(e -> listener.onFailure("Error finding project: " + e.getMessage()));
-    }
 
     public interface OnProjectCreatedListener {
         void onSuccess();
@@ -203,10 +167,6 @@ public class Firebase {
         void onFailure(String errorMessage);
     }
 
-    public interface OnProjectUpdatedListener {
-        void onSuccess();
-        void onFailure(String errorMessage);
-    }
 
     public interface OnProjectsFetchedListener {
         void onSuccess(List<Projects.Project> projects);
@@ -256,7 +216,7 @@ public class Firebase {
             return;
         }
 
-        Subjects.Subject newSubject = new Subjects.Subject(semester, "Active", color, subjectName, currentUser.getUid());
+        Subjects.Subject newSubject = new Subjects.Subject(semester, "Active", color, subjectName);
 
         db.collection("users").document(currentUser.getUid()).collection("subjects")
                 .add(newSubject)
@@ -271,22 +231,36 @@ public class Firebase {
             return;
         }
 
-        String userId = currentUser.getUid();
-
-        db.collection("users").document(userId).collection("subjects")
-                //.whereEqualTo("userId", userId)
-                //.whereEqualTo("status", "Active")
+        db.collection("users").document(currentUser.getUid()).collection("subjects")
+                .whereEqualTo("subjectStatus", "Active")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Subjects.Subject> activeSubjects = new ArrayList<>();
+                    // Clear the existing local storage array before adding new subjects
+                    localSubjects.clear();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Subjects.Subject subject = document.toObject(Subjects.Subject.class);
-                        subject.setId(document.getId()); // Set the document ID if needed
-                        activeSubjects.add(subject);
+                        if (subject != null) {
+                            activeSubjects.add(subject);
+                            // Add the subject to the static ArrayList
+                            localSubjects.add(subject);
+                            Log.d("SubjectFetch", "Subject: " + subject.getSubjectName()
+                                    + ", Status: " + subject.getStatus()
+                                    + ", Semester: " + subject.getSemester());
+                        }
                     }
                     listener.onSuccess(activeSubjects);
                 })
-                .addOnFailureListener(e -> listener.onFailure("Failed to fetch subjects: " + e.getMessage()));
+                .addOnFailureListener(e -> {
+                    Log.e("SubjectFetch", "Error fetching subjects", e);
+                    listener.onFailure("Failed to fetch subjects: " + e.getMessage());
+                });
+    }
+
+    // Interface for the listener (unchanged)
+    public interface OnActiveSubjectsFetchedListener {
+        void onSuccess(List<Subjects.Subject> subjects);
+        void onFailure(String errorMessage);
     }
 
     public void deleteSubject(Subjects.Subject subject, OnSubjectDeletedListener listener) {
@@ -323,11 +297,6 @@ public class Firebase {
         void onFailure(String errorMessage);
     }
 
-    public interface OnActiveSubjectsFetchedListener {
-        void onSuccess(List<Subjects.Subject> activeSubjects);
-        void onFailure(String errorMessage);
-    }
-
     public interface OnSubjectCreatedListener {
         void onSuccess();
         void onFailure(String errorMessage);
@@ -359,11 +328,42 @@ public class Firebase {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Tasks.Task> tasks = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Tasks.Task task = document.toObject(Tasks.Task.class);
-                        task.setId(document.getId());
-                        task.setUserId(userId);
-                        tasks.add(task);
-                        Log.d("TaskFetch", "Fetched task: " + task.taskName);
+                        try {
+                            Tasks.Task task = document.toObject(Tasks.Task.class);
+                            if (task != null) {
+                                // Apply safeguards to each field
+                                task.taskName = (task.taskName != null) ? task.taskName : "Unnamed Task";
+                                task.taskDescription = (task.taskDescription != null) ? task.taskDescription : "No description";
+                                task.taskStatus = (task.taskStatus != null) ? task.taskStatus : "Unknown Status";
+                                task.taskPriority = (task.taskPriority != null) ? task.taskPriority : "No Priority";
+
+                                // Handle DocumentReference fields
+                                if (task.projectRef == null) {
+                                    task.projectRef = db.document("projects/default");
+                                }
+                                if (task.subjectRef == null) {
+                                    task.subjectRef = db.document("subjects/default");
+                                }
+
+                                // Handle Date fields
+                                if (task.taskStartDate == null) {
+                                    task.taskStartDate = new Date(); // Current date as default
+                                }
+                                if (task.taskDueDate == null) {
+                                    task.taskDueDate = new Date(); // Current date as default
+                                }
+                                if (task.taskDueTime == null) {
+                                    task.taskDueTime = new Date(System.currentTimeMillis()); // Current time as default
+                                }
+
+                                tasks.add(task);
+                                Log.d("TaskFetch", "Fetched task: " + task.taskName);
+                            } else {
+                                Log.w("TaskFetch", "Skipped null task object");
+                            }
+                        } catch (Exception e) {
+                            Log.e("TaskFetch", "Error processing task document", e);
+                        }
                     }
                     Log.d("TaskFetch", "Total tasks fetched: " + tasks.size());
                     listener.onSuccess(tasks);
@@ -374,12 +374,6 @@ public class Firebase {
                 });
     }
 
-
-
-    public interface OnTaskDeletedListener {
-        void onSuccess();
-        void onFailure(String errorMessage);
-    }
     public interface OnTasksFetchedListener {
         void onSuccess(List<Tasks.Task> tasks);
         void onFailure(String errorMessage);

@@ -1,44 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:layout_height="wrap_content">
 
-    <EditText
-        android:id="@+id/taskSubjectTextView"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Subject" />
+        android:orientation="vertical"
+        android:padding="16dp">
 
-    <EditText
-        android:id="@+id/taskProjectTextView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Project" />
+        <EditText
+            android:id="@+id/taskSubjectTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Subject" />
 
-    <EditText
-        android:id="@+id/taskNameTextView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Assignment" />
+        <EditText
+            android:id="@+id/taskProjectTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Project" />
 
-    <EditText
-        android:id="@+id/taskDescriptionInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Description" />
+        <EditText
+            android:id="@+id/taskNameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Assignment" />
 
+        <EditText
+            android:id="@+id/taskDescriptionInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Description" />
 
-    <Spinner
-        android:id="@+id/prioritySpinner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        <Spinner
+            android:id="@+id/prioritySpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
-    <Spinner
-        android:id="@+id/statusSpinner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        <Spinner
+            android:id="@+id/statusSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-</LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Start Date: "
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/startDateButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Due Date: "
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/dueDateButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Due Time: "
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/dueTimeButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Select" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

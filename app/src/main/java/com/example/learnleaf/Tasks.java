@@ -1,11 +1,14 @@
 package com.example.learnleaf;
 
+import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -14,6 +17,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.DocumentReference;
+import android.util.Log;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -21,19 +30,17 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.Exclude;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Calendar;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 public class Tasks extends AppCompatActivity {
     private LinearLayout tasksContainer;
@@ -61,12 +68,7 @@ public class Tasks extends AppCompatActivity {
         }
         fetchTasksForCurrentUser();
 
-        addNew.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showCreateTaskDialog();
-            }
-        });
+        addNew.setOnClickListener(v -> showCreateTaskDialog());
     }
 
     private void showCreateTaskDialog() {
@@ -83,15 +85,20 @@ public class Tasks extends AppCompatActivity {
         Spinner prioritySpinner = viewInflated.findViewById(R.id.prioritySpinner);
         Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
 
+        // New views for date and time
+        Button startDateButton = viewInflated.findViewById(R.id.startDateButton);
+        Button dueDateButton = viewInflated.findViewById(R.id.dueDateButton);
+        Button dueTimeButton = viewInflated.findViewById(R.id.dueTimeButton);
+
         // Check if any view is null
         if (subjectInput == null || projectInput == null || assignmentInput == null ||
-                descriptionInput == null || prioritySpinner == null || statusSpinner == null) {
+                descriptionInput == null || prioritySpinner == null || statusSpinner == null ||
+                startDateButton == null || dueDateButton == null || dueTimeButton == null) {
             Toast.makeText(this, "Error: Unable to create dialog", Toast.LENGTH_SHORT).show();
             return;
         }
 
-
-        // Set up spinners
+        // Set up spinners (unchanged)
         ArrayAdapter<CharSequence> priorityAdapter = ArrayAdapter.createFromResource(this,
                 R.array.priority_array, android.R.layout.simple_spinner_item);
         priorityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -102,27 +109,72 @@ public class Tasks extends AppCompatActivity {
         statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         statusSpinner.setAdapter(statusAdapter);
 
+        // Variables to store date and time
+        final Calendar calendar = Calendar.getInstance();
+        final Date[] startDate = {null};
+        final Date[] dueDate = {null};
+        final Date[] dueTime = {null};
+
+        // Set up date pickers (unchanged)
+        DatePickerDialog.OnDateSetListener startDateListener = (view, year, month, day) -> {
+            calendar.set(Calendar.YEAR, year);
+            calendar.set(Calendar.MONTH, month);
+            calendar.set(Calendar.DAY_OF_MONTH, day);
+            startDate[0] = calendar.getTime();
+            startDateButton.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(startDate[0]));
+        };
+
+        DatePickerDialog.OnDateSetListener dueDateListener = (view, year, month, day) -> {
+            calendar.set(Calendar.YEAR, year);
+            calendar.set(Calendar.MONTH, month);
+            calendar.set(Calendar.DAY_OF_MONTH, day);
+            dueDate[0] = calendar.getTime();
+            dueDateButton.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(dueDate[0]));
+        };
+
+        // Set up time picker
+        TimePickerDialog.OnTimeSetListener dueTimeListener = (view, hourOfDay, minute) -> {
+            calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+            calendar.set(Calendar.MINUTE, minute);
+            dueTime[0] = calendar.getTime();
+            dueTimeButton.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(dueTime[0]));
+        };
+
+        // Set click listeners for date and time buttons
+        startDateButton.setOnClickListener(v -> new DatePickerDialog(Tasks.this, startDateListener,
+                calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show());
+
+        dueDateButton.setOnClickListener(v -> new DatePickerDialog(Tasks.this, dueDateListener,
+                calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH)).show());
+
+        dueTimeButton.setOnClickListener(v -> new TimePickerDialog(Tasks.this, dueTimeListener,
+                calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show());
+
         builder.setView(viewInflated);
 
         builder.setPositiveButton("Create", (dialog, which) -> {
             String taskName = assignmentInput.getText().toString();
             String taskDescription = descriptionInput.getText().toString();
             String taskPriority = prioritySpinner.getSelectedItem().toString();
-            String taskProjectId = projectInput.getText().toString();
-            String taskSubjectId = subjectInput.getText().toString();
+            String taskProject = projectInput.getText().toString();
+            String taskSubject = subjectInput.getText().toString();
+            String taskStatus = statusSpinner.getSelectedItem().toString();
 
-            createNewTask(taskName, taskDescription, taskPriority, taskProjectId, taskSubjectId, new OnTaskCreatedListener() {
-                @Override
-                public void onSuccess() {
-                    Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
-                    fetchTasksForCurrentUser();
-                }
+            // Use the static ArrayList from Firebase class
+            createNewTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
+                    startDate[0], dueDate[0], dueTime[0], Firebase.localProjects, Firebase.localSubjects,
+                    new OnTaskCreatedListener() {
+                        @Override
+                        public void onSuccess() {
+                            Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
+                            fetchTasksForCurrentUser();
+                        }
 
-                @Override
-                public void onFailure(String errorMessage) {
-                    Toast.makeText(Tasks.this, "Error creating task: " + errorMessage, Toast.LENGTH_SHORT).show();
-                }
-            });
+                        @Override
+                        public void onFailure(String errorMessage) {
+                            Toast.makeText(Tasks.this, "Error creating task: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        }
+                    });
         });
 
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
@@ -131,8 +183,62 @@ public class Tasks extends AppCompatActivity {
         dialog.show();
     }
 
+    // Implement these methods to fetch your local projects and subjects
+    private List<Projects.Project> getLocalProjects() {
+        // Check if the list is empty or null, and fetch if necessary
+        if (Firebase.localProjects == null || Firebase.localProjects.isEmpty()) {
+            fetchProjects();
+        }
+        return Firebase.localProjects;
+    }
+
+    private List<Subjects.Subject> getActiveSubjects() {
+        // Check if the list is empty or null, and fetch if necessary
+        if (Firebase.localSubjects == null || Firebase.localSubjects.isEmpty()) {
+            fetchActiveSubjects();
+        }
+        return Firebase.localSubjects;
+    }
+
+    // Helper method to fetch projects
+    private void fetchProjects() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
+            @Override
+            public void onSuccess(List<Projects.Project> projects) {
+                // Projects are now in Firebase.localProjects
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e("ProjectFetch", "Failed to fetch projects: " + errorMessage);
+                // Handle the error, maybe show a toast to the user
+            }
+        });
+    }
+
+    // Helper method to fetch active subjects
+    private void fetchActiveSubjects() {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        firebase.fetchActiveSubjectsForCurrentUser(new Firebase.OnActiveSubjectsFetchedListener() {
+            @Override
+            public void onSuccess(List<Subjects.Subject> subjects) {
+                // Active subjects are now in Firebase.activeSubjectsLocal
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Log.e("SubjectFetch", "Failed to fetch active subjects: " + errorMessage);
+                // Handle the error, maybe show a toast to the user
+            }
+        });
+    }
+
     public void createNewTask(String taskName, String taskDescription, String taskProject,
-                              String taskSubject, String taskPriority, OnTaskCreatedListener listener) {
+                              String taskSubject, String taskPriority, String taskStatus,
+                              Date startDate, Date dueDate, Date dueTime,
+                              List<Projects.Project> localProjects, List<Subjects.Subject> activeSubjects,
+                              OnTaskCreatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("No user logged in");
@@ -143,14 +249,37 @@ public class Tasks extends AppCompatActivity {
         newTask.put("taskName", taskName);
         newTask.put("taskDescription", taskDescription);
         newTask.put("taskPriority", taskPriority);
-        newTask.put("taskStatus", "Not Started");
+        newTask.put("taskStatus", taskStatus);
 
         // Convert project and subject to DocumentReferences
         DocumentReference projectRef = db.collection("projects").document(taskProject);
         DocumentReference subjectRef = db.collection("subjects").document(taskSubject);
 
+        // Find and add project name
+        String projectName = findProjectName(taskProject, localProjects);
         newTask.put("taskProject", projectRef);
+        newTask.put("taskProjectName", projectName);
+
+        // Find and add subject name
+        String subjectName = findSubjectName(taskSubject, activeSubjects);
         newTask.put("taskSubject", subjectRef);
+        newTask.put("taskSubjectName", subjectName);
+
+        // Add new attributes
+        if (startDate != null) {
+            newTask.put("taskStartDate", startDate);
+        }
+        if (dueDate != null) {
+            newTask.put("taskDueDate", dueDate);
+        }
+        if (dueTime != null) {
+            // Convert Time to Timestamp for Firestore
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(dueTime);
+            int hours = calendar.get(Calendar.HOUR_OF_DAY);
+            int minutes = calendar.get(Calendar.MINUTE);
+            newTask.put("taskDueTime", new Timestamp(hours, minutes));
+        }
 
         String userId = currentUser.getUid();
 
@@ -158,6 +287,24 @@ public class Tasks extends AppCompatActivity {
                 .add(newTask)
                 .addOnSuccessListener(documentReference -> listener.onSuccess())
                 .addOnFailureListener(e -> listener.onFailure("Error creating task: " + e.getMessage()));
+    }
+
+    private String findProjectName(String projectId, List<Projects.Project> localProjects) {
+        for (Projects.Project project : localProjects) {
+            if (project.getProjectName().equals(projectId)) {
+                return project.getProjectName();
+            }
+        }
+        return "Unknown Project";
+    }
+
+    private String findSubjectName(String subjectId, List<Subjects.Subject> activeSubjects) {
+        for (Subjects.Subject subject : activeSubjects) {
+            if (subject.getSubjectName().equals(subjectId)) {
+                return subject.getSubjectName();
+            }
+        }
+        return "Unknown Subject";
     }
 
     public interface OnTaskCreatedListener {
@@ -192,13 +339,16 @@ public class Tasks extends AppCompatActivity {
 
         if (tasks.isEmpty()) {
             TextView noTasksText = new TextView(this);
-            noTasksText.setText("No tasks found");
+            noTasksText.setText(R.string.no_tasks_found);
             tasksContainer.addView(noTasksText);
             return;
         }
 
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
         for (Task task : tasks) {
-            View taskView = getLayoutInflater().inflate(R.layout.task_item_block, null);
+            @SuppressLint("InflateParams") View taskView = getLayoutInflater().inflate(R.layout.task_item_block, null);
 
             TextView assignmentTextView = taskView.findViewById(R.id.taskNameTextView);
             assignmentTextView.setText(task.taskName);
@@ -210,13 +360,37 @@ public class Tasks extends AppCompatActivity {
             priorityTextView.setText(task.taskPriority);
 
             TextView projectTextView = taskView.findViewById(R.id.taskProjectTextView);
-            projectTextView.setText(task.taskProject != null ? task.taskProject.getId() : "No project");
+            projectTextView.setText(task.taskProject != null ? task.taskProject : "No project");
 
             TextView statusTextView = taskView.findViewById(R.id.taskStatusTextView);
             statusTextView.setText(task.taskStatus);
 
             TextView subjectTextView = taskView.findViewById(R.id.taskSubjectTextView);
-            subjectTextView.setText(task.taskSubject != null ? task.taskSubject.getId() : "No subject");
+            subjectTextView.setText(task.taskSubject != null ? task.taskSubject : "No subject");
+
+            // Set Start Date
+            TextView startDateTextView = taskView.findViewById(R.id.startDateTextView);
+            if (task.taskStartDate != null) {
+                startDateTextView.setText("Start: " + dateFormat.format(task.taskStartDate));
+            } else {
+                startDateTextView.setText("Start: Not set");
+            }
+
+            // Set Due Date
+            TextView dueDateTextView = taskView.findViewById(R.id.dueDateTextView);
+            if (task.taskDueDate != null) {
+                dueDateTextView.setText("Due: " + dateFormat.format(task.taskDueDate));
+            } else {
+                dueDateTextView.setText("Due: Not set");
+            }
+
+            // Set Due Time
+            TextView dueTimeTextView = taskView.findViewById(R.id.dueTimeTextView);
+            if (task.getTaskDueTime() != null) {
+                dueTimeTextView.setText("Time: " + timeFormat.format(task.getTaskDueTime()));
+            } else {
+                dueTimeTextView.setText("Time: Not set");
+            }
 
             ImageButton editButton = taskView.findViewById(R.id.editButton);
             editButton.setOnClickListener(v -> showEditTaskDialog(task));
@@ -234,7 +408,7 @@ public class Tasks extends AppCompatActivity {
         builder.setMessage("Are you sure you want to delete this task?");
         builder.setPositiveButton("Yes", (dialog, which) -> {
 
-            if (task.getId() == null) {
+            if (task.getTaskName() == null) {
                 Toast.makeText(this, "Error: Task ID is null", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -247,7 +421,7 @@ public class Tasks extends AppCompatActivity {
 
             String userId = currentUser.getUid();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
-            db.collection("users").document(userId).collection("tasks").document(task.getId())
+            db.collection("users").document(userId).collection("tasks").document(task.getTaskName())
                     .delete()
                     .addOnSuccessListener(aVoid -> {
                         tasksContainer.removeView(taskView);
@@ -276,30 +450,36 @@ public class Tasks extends AppCompatActivity {
         descriptionInput.setText(task.taskDescription);
 
         // Fetch and set subject name
-        if (task.taskSubject != null) {
-            task.taskSubject.get().addOnSuccessListener(documentSnapshot -> {
+        if (task.subjectRef != null) {
+            task.subjectRef.get().addOnSuccessListener((OnSuccessListener<DocumentSnapshot>) documentSnapshot -> {
                 if (documentSnapshot.exists()) {
-                    String subjectName = documentSnapshot.getString("name");
+                    String subjectName = documentSnapshot.get("name", String.class);
                     subjectInput.setText(subjectName != null ? subjectName : "");
                 }
-            }).addOnFailureListener(e -> {
-                Log.e("EditTask", "Error fetching subject: ", e);
-                subjectInput.setText("");
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.e("EditTask", "Error fetching subject: ", e);
+                    subjectInput.setText("");
+                }
             });
         } else {
             subjectInput.setText("");
         }
 
-        // Fetch and set project name
-        if (task.taskProject != null) {
-            task.taskProject.get().addOnSuccessListener(documentSnapshot -> {
+// Fetch and set project name
+        if (task.projectRef != null) {
+            task.projectRef.get().addOnSuccessListener((OnSuccessListener<DocumentSnapshot>) documentSnapshot -> {
                 if (documentSnapshot.exists()) {
-                    String projectName = documentSnapshot.getString("name");
+                    String projectName = documentSnapshot.get("name", String.class);
                     projectInput.setText(projectName != null ? projectName : "");
                 }
-            }).addOnFailureListener(e -> {
-                Log.e("EditTask", "Error fetching project: ", e);
-                projectInput.setText("");
+            }).addOnFailureListener(new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception e) {
+                    Log.e("EditTask", "Error fetching project: ", e);
+                    projectInput.setText("");
+                }
             });
         } else {
             projectInput.setText("");
@@ -321,19 +501,12 @@ public class Tasks extends AppCompatActivity {
         builder.setView(viewInflated);
 
         builder.setPositiveButton("Update", (dialog, which) -> {
-            String newAssignment = assignmentInput.getText().toString();
             String newSubjectName = subjectInput.getText().toString();
             String newProjectName = projectInput.getText().toString();
-            String newDescription = descriptionInput.getText().toString();
-            String newPriority = prioritySpinner.getSelectedItem().toString();
-            String newStatus = statusSpinner.getSelectedItem().toString();
 
             // Find or create subject and project references
-            findOrCreateSubjectAndProject(newSubjectName, newProjectName, new SubjectProjectCallback() {
-                @Override
-                public void onReferencesReady(DocumentReference subjectRef, DocumentReference projectRef) {
-                    updateTask(task, newAssignment, subjectRef, projectRef, newDescription, newPriority, newStatus);
-                }
+            findOrCreateSubjectAndProject(newSubjectName, newProjectName, (subjectRef, projectRef) -> {
+
             });
         });
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
@@ -398,161 +571,50 @@ public class Tasks extends AppCompatActivity {
 
     private interface SubjectProjectCallback {
         void onReferencesReady(DocumentReference subjectRef, DocumentReference projectRef);
+
     }
 
-    private void updateTask(Task task, String newAssignment, DocumentReference newSubject, DocumentReference newProject,
-                            String newDescription, String newPriority, String newStatus) {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "No user logged in", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String userId = currentUser.getUid();
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        DocumentReference taskRef = db.collection("users").document(userId).collection("tasks").document(task.getId());
-
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("taskName", newAssignment);
-        updates.put("taskDescription", newDescription);
-        updates.put("taskPriority", newPriority);
-        updates.put("taskStatus", newStatus);
-        updates.put("taskSubject", newSubject);
-        updates.put("taskProject", newProject);
-
-        taskRef.update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(Tasks.this, "Task updated successfully", Toast.LENGTH_SHORT).show();
-                    fetchTasksForCurrentUser();
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(Tasks.this, "Error updating task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-    }
-    /*
-    private void showDatePickerDialog(final TextView dateView) {
-        final Calendar c = Calendar.getInstance();
-        int year = c.get(Calendar.YEAR);
-        int month = c.get(Calendar.MONTH);
-        int day = c.get(Calendar.DAY_OF_MONTH);
-
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this,
-                (view, year1, monthOfYear, dayOfMonth) -> {
-                    Calendar calendar = Calendar.getInstance();
-                    calendar.set(year1, monthOfYear, dayOfMonth);
-                    Date selectedDate = calendar.getTime();
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                    String dateString = dateFormat.format(selectedDate);
-                    dateView.setText(dateString);
-                }, year, month, day);
-        datePickerDialog.show();
-    }
-
-    private Date parseDateString(String dateString) {
-        try {
-            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-            return format.parse(dateString);
-        } catch (ParseException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private void updateTask(Task task, String newAssignment, String newSubject, String newProject,
-                            String newDescription, String newPriority, String newStatus) {
-
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-
-        if (currentUser == null) {
-            Toast.makeText(this, "No user logged in", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String userId = currentUser.getUid();
-
-        // Create a reference to the specific task document
-        DocumentReference taskRef = db.collection("users").document(userId)
-                .collection("tasks").document(task.id);
-
-        Map<String, Object> updates = new HashMap<>();
-
-        updates.put("taskName", newAssignment); // Update task name
-        updates.put("taskDescription", newDescription); // Update task description
-        updates.put("taskPriority", newPriority); // Update task priority
-        updates.put("taskStatus", newStatus); // Update task status
-
-        // Handle subject DocumentReference
-        if (!newSubject.isEmpty()) {
-            DocumentReference subjectRef = db.collection("subjects").document(newSubject);
-            updates.put("taskSubject", subjectRef); // Update to the correct reference
-        } else {
-            updates.put("taskSubject", null); // Clear if empty
-        }
-
-        // Handle project DocumentReference
-        if (!newProject.isEmpty()) {
-            DocumentReference projectRef = db.collection("projects").document(newProject);
-            updates.put("taskProject", projectRef); // Update to the correct reference
-        } else {
-            updates.put("taskProject", null); // Clear if empty
-        }
-
-        // Update the task in Firestore
-        taskRef.update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(Tasks.this, "Task updated successfully", Toast.LENGTH_SHORT).show();
-                    fetchTasksForCurrentUser(); // Refresh the task list
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(Tasks.this, "Error updating task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-    }
-
-     */
 
     public static class Task {
-        public String id; // Document ID
-        public String userId; // User ID
         public String taskName; // Task name
         public String taskDescription; // Task description
         public String taskPriority; // Task priority
-        public DocumentReference taskProject; // Project related to the task
+        public DocumentReference projectRef;
+        private String taskProject;
+        public DocumentReference subjectRef;
+        private String taskSubject; // Project related to the task
         public String taskStatus; // Task status
-        public DocumentReference taskSubject; // Subject related to the task
+        public Date taskDueDate;
+        public Date taskDueTime;
+        public Date taskStartDate;
+
 
         // No-argument constructor
         public Task() {}
 
         public Task(String taskName, String taskDescription, String taskPriority,
-                    DocumentReference taskProject, String taskStatus, DocumentReference taskSubject) {
+                    DocumentReference taskProject, String taskStatus,
+                    DocumentReference taskSubject, Date taskDueDate, Date taskStartDate,Date taskDueTime) {
             this.taskName = taskName;
             this.taskDescription = taskDescription;
             this.taskPriority = taskPriority;
-            this.taskProject = taskProject;
+            this.projectRef = taskProject;
             this.taskStatus = taskStatus;
-            this.taskSubject = taskSubject;
+            this.subjectRef = taskSubject;
+            this.taskDueDate = taskDueDate;
+            this.taskStartDate = taskStartDate;
+            this.taskDueTime = taskDueTime;
+
         }
 
         // Getters and setters
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getUserId() {
-            return userId;
-        }
-
-        public void setUserId(String userId) {
-            this.userId = userId;
-        }
 
         public String getTaskName() {
             return taskName;
+        }
+
+        public Date getTaskDueTime() {
+            return taskDueTime;
         }
 
         public void setTaskName(String taskName) {
