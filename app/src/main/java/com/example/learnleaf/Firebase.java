@@ -18,7 +18,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 
@@ -216,7 +218,12 @@ public class Firebase {
             return;
         }
 
-        Subjects.Subject newSubject = new Subjects.Subject(semester, "Active", color, subjectName);
+        // Create a Map instead of using a Subject object
+        Map<String, Object> newSubject = new HashMap<>();
+        newSubject.put("subjectSemester", semester);
+        newSubject.put("subjectStatus", "Active");
+        newSubject.put("subjectColor", color);
+        newSubject.put("subjectName", subjectName);
 
         db.collection("users").document(currentUser.getUid()).collection("subjects")
                 .add(newSubject)
@@ -319,6 +326,7 @@ public class Firebase {
             return;
         }
 
+
         String userId = currentUser.getUid();
         Log.d("TaskFetch", "Fetching tasks for user ID: " + userId);
 
@@ -337,12 +345,25 @@ public class Firebase {
                                 task.taskStatus = (task.taskStatus != null) ? task.taskStatus : "Unknown Status";
                                 task.taskPriority = (task.taskPriority != null) ? task.taskPriority : "No Priority";
 
-                                // Handle DocumentReference fields
-                                if (task.projectRef == null) {
-                                    task.projectRef = db.document("projects/default");
+                                Log.d("TaskProject", "Document Path: " + task.taskProject.getPath());
+
+                                // Handle taskProject
+                                DocumentReference projectRef = document.getDocumentReference("taskProject");
+                                if (projectRef == null) {
+                                    task.setTaskProjectString("None");
+                                } else {
+                                    task.setTaskProjectString(projectRef.getId());
+                                    task.setTaskProject(projectRef);
                                 }
-                                if (task.subjectRef == null) {
-                                    task.subjectRef = db.document("subjects/default");
+
+                                // Handle taskSubject
+                                DocumentReference subjectRef = document.getDocumentReference("taskSubject");
+                                if (subjectRef == null) {
+                                    task.setTaskSubject(db.document("subjects/default"));
+                                    task.setTaskSubjectString("Default");
+                                } else {
+                                    task.setTaskSubjectString(subjectRef.getId());
+                                    task.setTaskSubject(subjectRef);
                                 }
 
                                 // Handle Date fields

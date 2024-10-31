@@ -279,6 +279,7 @@ public class Projects extends AppCompatActivity {
         private String projectDescription; // New attribute
         private String projectStatus; // New attribute
         private List<DocumentReference> projectSubjects; // New attribute
+        private String projectId;
 
         // No-argument constructor
         public Project() {
@@ -286,6 +287,7 @@ public class Projects extends AppCompatActivity {
             this.projectDescription = ""; // Default value
             this.projectName = ""; // Default value
             this.projectStatus = "Active"; // Default value (or adjust as needed)
+
         }
 
         // Constructor with parameters

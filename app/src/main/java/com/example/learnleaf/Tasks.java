@@ -360,13 +360,13 @@ public class Tasks extends AppCompatActivity {
             priorityTextView.setText(task.taskPriority);
 
             TextView projectTextView = taskView.findViewById(R.id.taskProjectTextView);
-            projectTextView.setText(task.taskProject != null ? task.taskProject : "No project");
+            projectTextView.setText(task.taskProjectString != null ? task.taskProjectString : "No project");
 
             TextView statusTextView = taskView.findViewById(R.id.taskStatusTextView);
             statusTextView.setText(task.taskStatus);
 
             TextView subjectTextView = taskView.findViewById(R.id.taskSubjectTextView);
-            subjectTextView.setText(task.taskSubject != null ? task.taskSubject : "No subject");
+            subjectTextView.setText(task.taskSubjectString != null ? task.taskSubjectString : "No subject");
 
             // Set Start Date
             TextView startDateTextView = taskView.findViewById(R.id.startDateTextView);
@@ -450,8 +450,8 @@ public class Tasks extends AppCompatActivity {
         descriptionInput.setText(task.taskDescription);
 
         // Fetch and set subject name
-        if (task.subjectRef != null) {
-            task.subjectRef.get().addOnSuccessListener((OnSuccessListener<DocumentSnapshot>) documentSnapshot -> {
+        if (task.taskSubject != null) {
+            task.taskSubject.get().addOnSuccessListener((OnSuccessListener<DocumentSnapshot>) documentSnapshot -> {
                 if (documentSnapshot.exists()) {
                     String subjectName = documentSnapshot.get("name", String.class);
                     subjectInput.setText(subjectName != null ? subjectName : "");
@@ -468,8 +468,8 @@ public class Tasks extends AppCompatActivity {
         }
 
 // Fetch and set project name
-        if (task.projectRef != null) {
-            task.projectRef.get().addOnSuccessListener((OnSuccessListener<DocumentSnapshot>) documentSnapshot -> {
+        if (task.taskProject != null) {
+            task.taskProject.get().addOnSuccessListener((OnSuccessListener<DocumentSnapshot>) documentSnapshot -> {
                 if (documentSnapshot.exists()) {
                     String projectName = documentSnapshot.get("name", String.class);
                     projectInput.setText(projectName != null ? projectName : "");
@@ -579,14 +579,15 @@ public class Tasks extends AppCompatActivity {
         public String taskName; // Task name
         public String taskDescription; // Task description
         public String taskPriority; // Task priority
-        public DocumentReference projectRef;
-        private String taskProject;
-        public DocumentReference subjectRef;
-        private String taskSubject; // Project related to the task
+        public DocumentReference taskProject;
+        public DocumentReference taskSubject;
+        public String taskProjectString;
+        public String taskSubjectString; // Project related to the task
         public String taskStatus; // Task status
         public Date taskDueDate;
         public Date taskDueTime;
         public Date taskStartDate;
+        public String taskId;
 
 
         // No-argument constructor
@@ -598,9 +599,7 @@ public class Tasks extends AppCompatActivity {
             this.taskName = taskName;
             this.taskDescription = taskDescription;
             this.taskPriority = taskPriority;
-            this.projectRef = taskProject;
             this.taskStatus = taskStatus;
-            this.subjectRef = taskSubject;
             this.taskDueDate = taskDueDate;
             this.taskStartDate = taskStartDate;
             this.taskDueTime = taskDueTime;
@@ -643,6 +642,41 @@ public class Tasks extends AppCompatActivity {
 
         public void setTaskStatus(String taskStatus) {
             this.taskStatus = taskStatus;
+        }
+
+        public String getTaskProjectString() {
+            return taskProjectString;
+        }
+
+        public void setTaskProjectString(String taskProjectString) {
+            this.taskProjectString = taskProjectString;
+        }
+
+        // Getters and setters for taskProject
+        public DocumentReference getTaskProject() {
+            return taskProject;
+        }
+
+        public void setTaskProject(DocumentReference taskProject) {
+            this.taskProject = taskProject;
+        }
+
+        // Getters and setters for taskSubjectString
+        public String getTaskSubjectString() {
+            return taskSubjectString;
+        }
+
+        public void setTaskSubjectString(String taskSubjectString) {
+            this.taskSubjectString = taskSubjectString;
+        }
+
+        // Getters and setters for taskSubject
+        public DocumentReference getTaskSubject() {
+            return taskSubject;
+        }
+
+        public void setTaskSubject(DocumentReference taskSubject) {
+            this.taskSubject = taskSubject;
         }
 
     }

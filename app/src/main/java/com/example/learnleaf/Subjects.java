@@ -268,6 +268,7 @@ public class Subjects extends AppCompatActivity {
         private String subjectColor;
         private String subjectName;
         private String subjectDescription;
+        public String subjectId;
 
 
         // Default constructor (required for Firestore)
@@ -282,12 +283,12 @@ public class Subjects extends AppCompatActivity {
         }
 
         // Getters
-        @PropertyName("semester")
+        @PropertyName("subjectSemester")
         public String getSemester() {
             return subjectSemester;
         }
 
-        @PropertyName("status")
+        @PropertyName("subjectStatus")
         public String getStatus() {
             return subjectStatus;
         }
