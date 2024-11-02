@@ -66,5 +66,44 @@
             android:layout_height="48dp"
             android:layout_marginBottom="8dp"/>
 
+        <!-- New buttons for selecting dates and time -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Start Date"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/startDateButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Select Start Date"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Due Date"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/dueDateButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Select Due Date"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Due Time"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/dueTimeButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="Select Due Time"
+            android:layout_marginBottom="8dp"/>
     </LinearLayout>
 </ScrollView>

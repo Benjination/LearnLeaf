@@ -34,7 +34,7 @@ import java.util.List;
 public class Subjects extends AppCompatActivity {
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
-    private LinearLayout subjectsContainer;
+    private static LinearLayout subjectsContainer;
     private ImageView addnew;
     private Firebase firebase;
 
@@ -51,7 +51,7 @@ public class Subjects extends AppCompatActivity {
 
         addnew.setOnClickListener(v -> showCreateSubjectDialog());
 
-        fetchActiveSubjectsForCurrentUser();
+        fetchAllSubjectsForCurrentUser();
     }
 
     private void showCreateSubjectDialog() {
@@ -118,7 +118,7 @@ public class Subjects extends AppCompatActivity {
             @Override
             public void onSuccess() {
                 Toast.makeText(Subjects.this, "Subject updated successfully", Toast.LENGTH_SHORT).show();
-                fetchActiveSubjectsForCurrentUser(); // Refresh the list
+                fetchAllSubjectsForCurrentUser(); // Refresh the list
             }
 
             @Override
@@ -133,7 +133,7 @@ public class Subjects extends AppCompatActivity {
             @Override
             public void onSuccess() {
                 Toast.makeText(Subjects.this, "Subject created successfully", Toast.LENGTH_SHORT).show();
-                fetchActiveSubjectsForCurrentUser(); // Refresh the list
+                fetchAllSubjectsForCurrentUser(); // Refresh the list
             }
 
             @Override
@@ -143,11 +143,11 @@ public class Subjects extends AppCompatActivity {
         });
     }
 
-    private void fetchActiveSubjectsForCurrentUser() {
-        firebase.fetchActiveSubjectsForCurrentUser(new Firebase.OnActiveSubjectsFetchedListener() {
+    private void fetchAllSubjectsForCurrentUser() {
+        firebase.fetchAllSubjectsForCurrentUser(new Firebase.OnAllSubjectsFetchedListener() {
             @Override
-            public void onSuccess(List<Subject> activeSubjects) {
-                updateUI(activeSubjects);
+            public void onSuccess(List<Subject> allSubjects) {
+                updateUI(allSubjects);
             }
 
             @Override
@@ -182,7 +182,7 @@ public class Subjects extends AppCompatActivity {
         });
     }
 
-    private void updateUI(List<Subject> subjects) {
+    public void updateUI(List<Subject> subjects) {
         if (subjectsContainer == null) {
             Toast.makeText(Subjects.this, "Null container", Toast.LENGTH_SHORT).show();
             return;
@@ -224,16 +224,8 @@ public class Subjects extends AppCompatActivity {
                     subject.getSubjectName(), subject.getStatus(), subject.getSemester());
             cardView.setContentDescription(contentDescription);
 
-
-            editButton.setOnClickListener(v -> {
-                //Handles edit action
-                showEditSubjectDialog(subject);
-            });
-
-            deleteButton.setOnClickListener(v -> {
-                    //handle delete action
-                    showDeleteConfirmationDialog(subject, blockView);
-        });
+            editButton.setOnClickListener(v -> showEditSubjectDialog(subject));
+            deleteButton.setOnClickListener(v -> showDeleteConfirmationDialog(subject, blockView));
 
             subjectsContainer.addView(blockView);
         }
@@ -301,6 +293,9 @@ public class Subjects extends AppCompatActivity {
             return subjectName;
         }
 
+        public String getSubjectId() {
+            return subjectId;
+        }
     }
 
 

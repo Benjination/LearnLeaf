@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public class Firebase {
@@ -37,12 +37,13 @@ public class Firebase {
         this.mAuth = FirebaseAuth.getInstance();
         this.db = FirebaseFirestore.getInstance();
     }
+
     public static ArrayList<Subjects.Subject> localSubjects = new ArrayList<>();
     public static ArrayList<Projects.Project> localProjects = new ArrayList<>();
+
     public FirebaseUser getCurrentUser() {
         return mAuth.getCurrentUser();
     }
-
 
 
     //Used in Login page to check the input email and password, and Sign in
@@ -67,6 +68,7 @@ public class Firebase {
 
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
+
         void onError(String errorMessage);
     }
 
@@ -100,7 +102,6 @@ public class Firebase {
                 })
                 .addOnFailureListener(e -> listener.onFailure("Error creating project: " + e.getMessage()));
     }
-
 
 
     public void fetchProjectsForCurrentUser(OnProjectsFetchedListener listener) {
@@ -162,17 +163,20 @@ public class Firebase {
 
     public interface OnProjectCreatedListener {
         void onSuccess();
+
         void onFailure(String errorMessage);
     }
 
     public interface OnProjectDeletedListener {
         void onSuccess();
+
         void onFailure(String errorMessage);
     }
 
 
     public interface OnProjectsFetchedListener {
         void onSuccess(List<Projects.Project> projects);
+
         void onFailure(String errorMessage);
     }
 
@@ -232,7 +236,8 @@ public class Firebase {
                 .addOnFailureListener(e -> listener.onFailure("Error creating subject: " + e.getMessage()));
     }
 
-    public void fetchActiveSubjectsForCurrentUser(OnActiveSubjectsFetchedListener listener) {
+
+    public void fetchAllSubjectsForCurrentUser(OnAllSubjectsFetchedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("User not signed in");
@@ -240,24 +245,28 @@ public class Firebase {
         }
 
         db.collection("users").document(currentUser.getUid()).collection("subjects")
-                .whereEqualTo("subjectStatus", "Active")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Subjects.Subject> activeSubjects = new ArrayList<>();
+                    List<Subjects.Subject> allSubjects = new ArrayList<>();
                     // Clear the existing local storage array before adding new subjects
                     localSubjects.clear();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Subjects.Subject subject = document.toObject(Subjects.Subject.class);
                         if (subject != null) {
-                            activeSubjects.add(subject);
+                            subject.subjectId = document.getId(); // Ensure the ID is set
+                            allSubjects.add(subject);
                             // Add the subject to the static ArrayList
                             localSubjects.add(subject);
                             Log.d("SubjectFetch", "Subject: " + subject.getSubjectName()
                                     + ", Status: " + subject.getStatus()
-                                    + ", Semester: " + subject.getSemester());
+                                    + ", Semester: " + subject.getSemester()
+                                    + ", ID: " + subject.subjectId);
                         }
+                        localSubjects.clear();
+                        localSubjects.addAll(allSubjects);
+                        listener.onSuccess(localSubjects);
                     }
-                    listener.onSuccess(activeSubjects);
+                    listener.onSuccess(allSubjects);
                 })
                 .addOnFailureListener(e -> {
                     Log.e("SubjectFetch", "Error fetching subjects", e);
@@ -265,11 +274,18 @@ public class Firebase {
                 });
     }
 
-    public interface OnActiveSubjectsFetchedListener {
-        void onSuccess(List<Subjects.Subject> activeSubjects);
+    public interface OnAllSubjectsFetchedListener {
+        void onSuccess(List<Subjects.Subject> subjects);
+
         void onFailure(String errorMessage);
     }
 
+
+    public interface OnActiveSubjectsFetchedListener {
+        void onSuccess(List<Subjects.Subject> activeSubjects);
+
+        void onFailure(String errorMessage);
+    }
 
 
     // Interface for the listener (unchanged)
@@ -305,21 +321,23 @@ public class Firebase {
 
     public interface OnSubjectDeletedListener {
         void onSuccess();
+
         void onFailure(String errorMessage);
     }
 
     public interface OnSubjectCreatedListener {
         void onSuccess();
+
         void onFailure(String errorMessage);
     }
 
     public interface OnSubjectUpdatedListener {
         void onSuccess();
+
         void onFailure(String errorMessage);
     }
 
     //-------------------------------------TASKS
-
 
 
     public void fetchTasksForCurrentUser(OnTasksFetchedListener listener) {
@@ -335,37 +353,21 @@ public class Firebase {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Tasks.Task> tasks = new ArrayList<>();
+                    List<Tasks.Task> tasksToUpdate = new ArrayList<>();
+
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Tasks.Task task = document.toObject(Tasks.Task.class);
                         if (task != null) {
                             task.setTaskId(document.getId());
-
-                            // Handle project reference
-                            if (task.getTaskProject() != null) {
-                                task.setTaskProjectString(task.getTaskProject().getId());
-                                // Fetch project details
-                                task.getTaskProject().get().addOnSuccessListener(projectSnapshot -> {
-                                    if (projectSnapshot.exists()) {
-                                        task.setTaskProjectString(projectSnapshot.getString("projectName"));
-                                    }
-                                });
-                            }
-
-                            // Handle subject reference
-                            if (task.getTaskSubject() != null) {
-                                task.setTaskSubjectString(task.getTaskSubject().getId());
-                                // Fetch subject details
-                                task.getTaskSubject().get().addOnSuccessListener(subjectSnapshot -> {
-                                    if (subjectSnapshot.exists()) {
-                                        task.setTaskSubjectString(subjectSnapshot.getString("subjectName"));
-                                    }
-                                });
-                            }
-
+                            tasksToUpdate.add(task);
                             tasks.add(task);
                         }
                     }
-                    listener.onSuccess(tasks);
+
+                    // Fetch project and subject details for all tasks
+                    fetchProjectAndSubjectDetails(tasksToUpdate, () -> {
+                        listener.onSuccess(tasks);
+                    });
                 })
                 .addOnFailureListener(e -> {
                     Log.e("TaskFetch", "Error fetching tasks", e);
@@ -373,8 +375,57 @@ public class Firebase {
                 });
     }
 
+    private void fetchProjectAndSubjectDetails(List<Tasks.Task> tasks, Runnable onComplete) {
+        AtomicInteger counter = new AtomicInteger(tasks.size() * 2); // 2 operations per task
+
+        for (Tasks.Task task : tasks) {
+            // Handle project reference
+            if (task.getTaskProject() != null) {
+                task.getTaskProject().get().addOnSuccessListener(projectSnapshot -> {
+                    if (projectSnapshot.exists()) {
+                        task.setTaskProjectString(projectSnapshot.getString("projectName"));
+                    }
+                    if (counter.decrementAndGet() == 0) {
+                        onComplete.run();
+                    }
+                }).addOnFailureListener(e -> {
+                    Log.e("TaskFetch", "Error fetching project details", e);
+                    if (counter.decrementAndGet() == 0) {
+                        onComplete.run();
+                    }
+                });
+            } else {
+                if (counter.decrementAndGet() == 0) {
+                    onComplete.run();
+                }
+            }
+
+            // Handle subject reference
+            if (task.getTaskSubject() != null) {
+                task.getTaskSubject().get().addOnSuccessListener(subjectSnapshot -> {
+                    if (subjectSnapshot.exists()) {
+                        task.setTaskSubjectString(subjectSnapshot.getString("subjectName"));
+                    }
+                    if (counter.decrementAndGet() == 0) {
+                        onComplete.run();
+                    }
+                }).addOnFailureListener(e -> {
+                    Log.e("TaskFetch", "Error fetching subject details", e);
+                    if (counter.decrementAndGet() == 0) {
+                        onComplete.run();
+                    }
+                });
+            } else {
+                if (counter.decrementAndGet() == 0) {
+                    onComplete.run();
+                }
+            }
+        }
+    }
+
     public interface OnTasksFetchedListener {
         void onSuccess(List<Tasks.Task> tasks);
+
         void onFailure(String errorMessage);
     }
 }
