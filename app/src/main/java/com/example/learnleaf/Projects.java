@@ -26,7 +26,9 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Projects extends AppCompatActivity {
@@ -76,7 +78,7 @@ public class Projects extends AppCompatActivity {
             String projectDescription = projectDescriptionInput.getText().toString(); // Get description
             String status = statusSpinner.getSelectedItem().toString();
 
-            // Assuming subjects are entered as a comma-separated string
+
             String subjectString = subjectInput.getText().toString();
             List<String> projectSubjects = Arrays.asList(subjectString.split(",\\s*")); // Convert to List
 
@@ -143,15 +145,15 @@ public class Projects extends AppCompatActivity {
         builder.setView(viewInflated);
 
         builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            String projectName = projectNameInput.getText().toString();
-            String projectDescription = projectDescriptionInput.getText().toString(); // Get description
+            String newProjectName = projectNameInput.getText().toString();
+            String projectDescription = projectDescriptionInput.getText().toString();
             String status = statusSpinner.getSelectedItem().toString();
 
-            // Assuming that you no longer need subjects input
-            List<String> projectSubjects = new ArrayList<>(); // Initialize an empty list or modify as needed
+            // Pass an empty list for subjects if you're not handling them in the dialog
+            List<String> projectSubjects = new ArrayList<>();
 
-            // Use the document ID directly from the project object if needed
-            updateProject(project.getProjectName(), projectName, projectDescription, status, projectSubjects); // Updated call
+            // Call the updateProject method
+            updateProject(project.getProjectName(), newProjectName, projectDescription, status, projectSubjects);// Updated call
         });
 
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
@@ -192,27 +194,58 @@ public class Projects extends AppCompatActivity {
                 .show();
     }
 
-    public void updateProject(String projectId, String newProjectName, String newProjectDescription, String newStatus, List<String> newSubjects) {
+    public void updateProject(String oldProjectName, String newProjectName, String projectDescription, String projectStatus, List<String> subjectIds) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            // Handle user not signed in
+            // Handle the case where the user is not signed in
+            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String userId = currentUser.getUid();
 
-        db.collection("users").document(userId).collection("projects").document(projectId)
-                .update(
-                        "projectName", newProjectName,
-                        "projectDescription", newProjectDescription,
-                        "projectStatus", newStatus,
-                        "projectSubjects", newSubjects // Update subjects
-                )
-                .addOnSuccessListener(aVoid -> {
-                    // Handle success
+        // Query to find the project document by its name
+        db.collection("users").document(userId).collection("projects")
+                .whereEqualTo("name", oldProjectName)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        // Assuming project names are unique, get the first document
+                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
+                        String projectId = documentSnapshot.getId();
+
+                        // Create a map to hold the updated fields
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("name", newProjectName);
+                        updates.put("description", projectDescription);
+                        updates.put("status", projectStatus);
+
+                        // Convert subject IDs to DocumentReferences if needed
+                        if (!subjectIds.isEmpty()) {
+                            List<DocumentReference> subjectReferences = new ArrayList<>();
+                            for (String subjectId : subjectIds) {
+                                DocumentReference subjectRef = db.collection("users").document(userId).collection("subjects").document(subjectId);
+                                subjectReferences.add(subjectRef);
+                            }
+                            updates.put("projectSubjects", subjectReferences);
+                        }
+
+                        // Update the existing project in Firestore
+                        db.collection("users").document(userId).collection("projects").document(projectId)
+                                .update(updates)
+                                .addOnSuccessListener(aVoid -> {
+                                    Toast.makeText(this, "Project updated successfully", Toast.LENGTH_SHORT).show();
+                                    // Refresh your UI or project list here
+                                })
+                                .addOnFailureListener(e -> {
+                                    Toast.makeText(this, "Error updating project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                });
+                    } else {
+                        Toast.makeText(this, "Project not found", Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .addOnFailureListener(e -> {
-                    // Handle failure
+                    Toast.makeText(this, "Error finding project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -279,7 +312,7 @@ public class Projects extends AppCompatActivity {
         private String projectDescription; // New attribute
         private String projectStatus; // New attribute
         private List<DocumentReference> projectSubjects; // New attribute
-        private String projectId;
+        public String projectId;
 
         // No-argument constructor
         public Project() {
@@ -332,5 +365,13 @@ public class Projects extends AppCompatActivity {
             this.projectSubjects = subjects;
         }
 
+        public String getProjectId() {
+            return projectId;
+        }
+
+        // Setter for projectId
+        public void setProjectId(String projectId) {
+            this.projectId = projectId;
+        }
     }
 }

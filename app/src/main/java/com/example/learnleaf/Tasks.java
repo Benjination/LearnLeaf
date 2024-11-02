@@ -245,15 +245,17 @@ public class Tasks extends AppCompatActivity {
             return;
         }
 
+        String userId = currentUser.getUid();
+
         Map<String, Object> newTask = new HashMap<>();
         newTask.put("taskName", taskName);
         newTask.put("taskDescription", taskDescription);
         newTask.put("taskPriority", taskPriority);
         newTask.put("taskStatus", taskStatus);
 
-        // Convert project and subject to DocumentReferences
-        DocumentReference projectRef = db.collection("projects").document(taskProject);
-        DocumentReference subjectRef = db.collection("subjects").document(taskSubject);
+        // Create new reference format for project and subject
+        String projectRef = "/users/" + userId + "/projects/" + taskProject;
+        String subjectRef = "/users/" + userId + "/subjects/" + taskSubject;
 
         // Find and add project name
         String projectName = findProjectName(taskProject, localProjects);
@@ -280,8 +282,6 @@ public class Tasks extends AppCompatActivity {
             int minutes = calendar.get(Calendar.MINUTE);
             newTask.put("taskDueTime", new Timestamp(hours, minutes));
         }
-
-        String userId = currentUser.getUid();
 
         db.collection("users").document(userId).collection("tasks")
                 .add(newTask)
@@ -360,13 +360,34 @@ public class Tasks extends AppCompatActivity {
             priorityTextView.setText(task.taskPriority);
 
             TextView projectTextView = taskView.findViewById(R.id.taskProjectTextView);
-            projectTextView.setText(task.taskProjectString != null ? task.taskProjectString : "No project");
+            projectTextView.setText(task.getTaskProjectString() != null ? task.getTaskProjectString() : "Loading...");
+
+            TextView subjectTextView = taskView.findViewById(R.id.taskSubjectTextView);
+            subjectTextView.setText(task.getTaskSubjectString() != null ? task.getTaskSubjectString() : "Loading...");
+
+            // Set up observers for project and subject names
+            if (task.getTaskProject() != null) {
+                task.getTaskProject().get().addOnSuccessListener(projectSnapshot -> {
+                    if (projectSnapshot.exists()) {
+                        String projectName = projectSnapshot.getString("projectName");
+                        projectTextView.setText(projectName != null ? projectName : "Unknown Project");
+                    }
+                });
+            }
+
+            if (task.getTaskSubject() != null) {
+                task.getTaskSubject().get().addOnSuccessListener(subjectSnapshot -> {
+                    if (subjectSnapshot.exists()) {
+                        String subjectName = subjectSnapshot.getString("subjectName");
+                        subjectTextView.setText(subjectName != null ? subjectName : "Unknown Subject");
+                    }
+                });
+            }
 
             TextView statusTextView = taskView.findViewById(R.id.taskStatusTextView);
             statusTextView.setText(task.taskStatus);
 
-            TextView subjectTextView = taskView.findViewById(R.id.taskSubjectTextView);
-            subjectTextView.setText(task.taskSubjectString != null ? task.taskSubjectString : "No subject");
+
 
             // Set Start Date
             TextView startDateTextView = taskView.findViewById(R.id.startDateTextView);
@@ -679,6 +700,17 @@ public class Tasks extends AppCompatActivity {
             this.taskSubject = taskSubject;
         }
 
+        public void setTaskId(String id) {
+        this.taskId = id;
+        }
+
+        public void setProjectId(String substring) {
+            this.taskProjectString = substring;
+        }
+
+        public void setSubjectId(String substring) {
+            this.taskProjectString = substring;
+        }
     }
 
 }

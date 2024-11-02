@@ -117,6 +117,7 @@ public class Firebase {
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Projects.Project project = document.toObject(Projects.Project.class);
                         if (project != null) {
+                            project.setProjectId(document.getId()); // Correctly using the setter method
                             localProjects.add(project);
                         }
                     }
@@ -264,11 +265,14 @@ public class Firebase {
                 });
     }
 
-    // Interface for the listener (unchanged)
     public interface OnActiveSubjectsFetchedListener {
-        void onSuccess(List<Subjects.Subject> subjects);
+        void onSuccess(List<Subjects.Subject> activeSubjects);
         void onFailure(String errorMessage);
     }
+
+
+
+    // Interface for the listener (unchanged)
 
     public void deleteSubject(Subjects.Subject subject, OnSubjectDeletedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -321,72 +325,46 @@ public class Firebase {
     public void fetchTasksForCurrentUser(OnTasksFetchedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            Log.d("TaskFetch", "No current user");
-            listener.onSuccess(new ArrayList<>());
+            listener.onFailure("User not signed in");
             return;
         }
 
-
         String userId = currentUser.getUid();
-        Log.d("TaskFetch", "Fetching tasks for user ID: " + userId);
 
         db.collection("users").document(userId).collection("tasks")
-                .whereIn("taskStatus", Arrays.asList("Not Started", "Active", "In Progress"))
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Tasks.Task> tasks = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        try {
-                            Tasks.Task task = document.toObject(Tasks.Task.class);
-                            if (task != null) {
-                                // Apply safeguards to each field
-                                task.taskName = (task.taskName != null) ? task.taskName : "Unnamed Task";
-                                task.taskDescription = (task.taskDescription != null) ? task.taskDescription : "No description";
-                                task.taskStatus = (task.taskStatus != null) ? task.taskStatus : "Unknown Status";
-                                task.taskPriority = (task.taskPriority != null) ? task.taskPriority : "No Priority";
+                        Tasks.Task task = document.toObject(Tasks.Task.class);
+                        if (task != null) {
+                            task.setTaskId(document.getId());
 
-                                Log.d("TaskProject", "Document Path: " + task.taskProject.getPath());
-
-                                // Handle taskProject
-                                DocumentReference projectRef = document.getDocumentReference("taskProject");
-                                if (projectRef == null) {
-                                    task.setTaskProjectString("None");
-                                } else {
-                                    task.setTaskProjectString(projectRef.getId());
-                                    task.setTaskProject(projectRef);
-                                }
-
-                                // Handle taskSubject
-                                DocumentReference subjectRef = document.getDocumentReference("taskSubject");
-                                if (subjectRef == null) {
-                                    task.setTaskSubject(db.document("subjects/default"));
-                                    task.setTaskSubjectString("Default");
-                                } else {
-                                    task.setTaskSubjectString(subjectRef.getId());
-                                    task.setTaskSubject(subjectRef);
-                                }
-
-                                // Handle Date fields
-                                if (task.taskStartDate == null) {
-                                    task.taskStartDate = new Date(); // Current date as default
-                                }
-                                if (task.taskDueDate == null) {
-                                    task.taskDueDate = new Date(); // Current date as default
-                                }
-                                if (task.taskDueTime == null) {
-                                    task.taskDueTime = new Date(System.currentTimeMillis()); // Current time as default
-                                }
-
-                                tasks.add(task);
-                                Log.d("TaskFetch", "Fetched task: " + task.taskName);
-                            } else {
-                                Log.w("TaskFetch", "Skipped null task object");
+                            // Handle project reference
+                            if (task.getTaskProject() != null) {
+                                task.setTaskProjectString(task.getTaskProject().getId());
+                                // Fetch project details
+                                task.getTaskProject().get().addOnSuccessListener(projectSnapshot -> {
+                                    if (projectSnapshot.exists()) {
+                                        task.setTaskProjectString(projectSnapshot.getString("projectName"));
+                                    }
+                                });
                             }
-                        } catch (Exception e) {
-                            Log.e("TaskFetch", "Error processing task document", e);
+
+                            // Handle subject reference
+                            if (task.getTaskSubject() != null) {
+                                task.setTaskSubjectString(task.getTaskSubject().getId());
+                                // Fetch subject details
+                                task.getTaskSubject().get().addOnSuccessListener(subjectSnapshot -> {
+                                    if (subjectSnapshot.exists()) {
+                                        task.setTaskSubjectString(subjectSnapshot.getString("subjectName"));
+                                    }
+                                });
+                            }
+
+                            tasks.add(task);
                         }
                     }
-                    Log.d("TaskFetch", "Total tasks fetched: " + tasks.size());
                     listener.onSuccess(tasks);
                 })
                 .addOnFailureListener(e -> {
