@@ -3,6 +3,8 @@ package com.example.learnleaf;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -133,26 +135,48 @@ public class Projects extends AppCompatActivity {
 
         builder.setView(viewInflated);
 
-        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            String projectName = projectNameInput.getText().toString();
-            String projectDescription = projectDescriptionInput.getText().toString();
-            String status = statusSpinner.getSelectedItem().toString();
-
-            String subjectString = subjectInput.getText().toString();
-            List<String> projectSubjects = Arrays.asList(subjectString.split(",\\s*"));
-
-            // Convert subject strings to DocumentReferences
-            List<DocumentReference> subjectRefs = new ArrayList<>();
-            for (String subject : projectSubjects) {
-                subjectRefs.add(db.collection("users").document(userId).collection("subjects").document(subject));
-            }
-
-            createNewProject(projectName, projectDescription, status, subjectRefs, projectDueDate[0], projectDueTime[0]);
-        });
-
+        builder.setPositiveButton(android.R.string.ok, null); // We'll set the listener later
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
 
-        builder.show();
+        AlertDialog dialog = builder.create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setEnabled(false); // Initially disable the button
+
+            projectNameInput.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    positiveButton.setEnabled(!s.toString().trim().isEmpty());
+                }
+            });
+
+            positiveButton.setOnClickListener(v -> {
+                String projectName = projectNameInput.getText().toString().trim();
+                String projectDescription = projectDescriptionInput.getText().toString();
+                String status = statusSpinner.getSelectedItem().toString();
+
+                String subjectString = subjectInput.getText().toString();
+                List<String> projectSubjects = Arrays.asList(subjectString.split(",\\s*"));
+
+                // Convert subject strings to DocumentReferences
+                List<DocumentReference> subjectRefs = new ArrayList<>();
+                for (String subject : projectSubjects) {
+                    subjectRefs.add(db.collection("users").document(userId).collection("subjects").document(subject));
+                }
+
+                createNewProject(projectName, projectDescription, status, subjectRefs, projectDueDate[0], projectDueTime[0]);
+                dialog.dismiss();
+            });
+        });
+
+        dialog.show();
     }
 
     private void createNewProject(String projectName, String projectDescription, String projectStatus,

@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -125,51 +127,67 @@ public class Tasks extends AppCompatActivity {
 
         builder.setView(viewInflated);
 
-
-
-        builder.setPositiveButton("Create", (dialog, which) -> {
-            String taskName = assignmentInput.getText().toString();
-            String taskDescription = descriptionInput.getText().toString();
-            String taskPriority = prioritySpinner.getSelectedItem().toString();
-            String taskProject = projectInput.getText().toString();
-            String taskSubject = subjectInput.getText().toString();
-            String taskStatus = statusSpinner.getSelectedItem().toString();
-
-            List<Projects.Project> localProjects = getLocalProjects();
-            List<Subjects.Subject> activeSubjects = getActiveSubjects();
-
-            createNewTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
-                    startDate[0], dueDate[0], dueTime[0], localProjects, activeSubjects,
-                    new OnTaskCreatedListener() {
-                        @Override
-                        public void onSuccess() {
-                            Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
-                            // Fetch and update the tasks list
-                            fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
-                                @Override
-                                public void onSuccess(List<Tasks.Task> tasks) {
-                                    updateUI(tasks); // Update the UI with the new list of tasks
-                                }
-
-                                @Override
-                                public void onFailure(String errorMessage) {
-                                    Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
-                                }
-                            });
-                        }
-
-                        @Override
-                        public void onFailure(String errorMessage) {
-                            Toast.makeText(Tasks.this, "Failed to create task: " + errorMessage, Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
-
-        });
-
+        builder.setPositiveButton("Create", null); // We'll set the listener later
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         AlertDialog dialog = builder.create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setEnabled(false); // Initially disable the button
+
+            assignmentInput.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    positiveButton.setEnabled(s.toString().trim().length() > 0);
+                }
+            });
+
+            positiveButton.setOnClickListener(v -> {
+                String taskName = assignmentInput.getText().toString().trim();
+                String taskDescription = descriptionInput.getText().toString().trim();
+                String taskPriority = prioritySpinner.getSelectedItem().toString();
+                String taskProject = projectInput.getText().toString().trim();
+                String taskSubject = subjectInput.getText().toString().trim();
+                String taskStatus = statusSpinner.getSelectedItem().toString();
+
+                List<Projects.Project> localProjects = getLocalProjects();
+                List<Subjects.Subject> activeSubjects = getActiveSubjects();
+
+                createNewTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
+                        startDate[0], dueDate[0], dueTime[0], localProjects, activeSubjects,
+                        new OnTaskCreatedListener() {
+                            @Override
+                            public void onSuccess() {
+                                Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
+                                fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
+                                    @Override
+                                    public void onSuccess(List<Tasks.Task> tasks) {
+                                        updateUI(tasks);
+                                    }
+
+                                    @Override
+                                    public void onFailure(String errorMessage) {
+                                        Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                                dialog.dismiss();
+                            }
+
+                            @Override
+                            public void onFailure(String errorMessage) {
+                                Toast.makeText(Tasks.this, "Failed to create task: " + errorMessage, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            });
+        });
+
         dialog.show();
     }
 
@@ -272,6 +290,12 @@ public class Tasks extends AppCompatActivity {
                               Date startDate, Date dueDate, Date dueTime,
                               List<Projects.Project> localProjects, List<Subjects.Subject> activeSubjects,
                               OnTaskCreatedListener listener) {
+        // Check if taskName is blank
+        if (taskName == null || taskName.trim().isEmpty()) {
+            listener.onFailure("Task name cannot be blank");
+            return;
+        }
+
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("No user logged in");
@@ -289,13 +313,12 @@ public class Tasks extends AppCompatActivity {
                     newTask.put("taskDescription", taskDescription);
                     newTask.put("taskDueDate", dueDate);
                     newTask.put("taskDueTime", dueTime);
-                    newTask.put("taskName", taskName);
+                    newTask.put("taskName", taskName.trim()); // Trim the task name
                     newTask.put("taskPriority", taskPriority);
                     newTask.put("taskProject", projectRef);
                     newTask.put("taskStartDate", startDate);
                     newTask.put("taskStatus", taskStatus);
-                    newTask.put("taskSubject", subjectRef); // Ensure this is set correctly
-
+                    newTask.put("taskSubject", subjectRef);
 
                     if (startDate != null) {
                         newTask.put("taskStartDate", startDate);

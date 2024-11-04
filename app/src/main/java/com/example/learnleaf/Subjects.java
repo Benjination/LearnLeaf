@@ -2,6 +2,8 @@ package com.example.learnleaf;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -65,15 +67,44 @@ public class Subjects extends AppCompatActivity {
 
         builder.setView(viewInflated);
 
-        builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
-            String subjectName = subjectNameInput.getText().toString();
-            String semester = semesterInput.getText().toString();
-            String color = colorInput.getText().toString();
-            createNewSubject(subjectName, semester, color);
-        });
+        // Set up the buttons
+        builder.setPositiveButton(android.R.string.ok, null); // We'll set the listener later
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
 
-        builder.show();
+        // Create the AlertDialog
+        AlertDialog dialog = builder.create();
+
+        // Set up a listener to be invoked when the dialog is shown
+        dialog.setOnShowListener(dialogInterface -> {
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setEnabled(false); // Initially disable the button
+
+            // Set up a TextWatcher to monitor changes in the subjectNameInput
+            subjectNameInput.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                    // Enable the button only if the subject name is not blank
+                    positiveButton.setEnabled(s.toString().trim().length() > 0);
+                }
+            });
+
+            // Set the click listener for the positive button
+            positiveButton.setOnClickListener(v -> {
+                String subjectName = subjectNameInput.getText().toString().trim();
+                String semester = semesterInput.getText().toString().trim();
+                String color = colorInput.getText().toString().trim();
+                createNewSubject(subjectName, semester, color);
+                dialog.dismiss();
+            });
+        });
+
+        dialog.show();
     }
 
     private void showEditSubjectDialog(Subject subject) {
