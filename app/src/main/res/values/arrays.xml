@@ -7,8 +7,9 @@
     </string-array>
 
     <string-array name="status_array">
-        <item>Active</item>
-        <item>Archived</item>
+        <item>Not Started</item>
+        <item>In Progress</item>
+        <item>Completed</item>
     </string-array>
 
 </resources>

@@ -280,7 +280,7 @@ public class Tasks extends AppCompatActivity {
 
         String userId = currentUser.getUid();
 
-        findOrCreateSubjectAndProject(taskSubject, taskProject, new OnSubjectAndProjectEnsuredListener() {
+        findOrCreateSubjectAndProject(taskSubject, taskProject, dueDate, dueTime, new OnSubjectAndProjectEnsuredListener() {
             @Override
             public void onReferencesReady(DocumentReference subjectRef, DocumentReference projectRef) {
                 // Ensure this block is only executed once
@@ -620,7 +620,7 @@ public class Tasks extends AppCompatActivity {
             String newProjectName = projectInput.getText().toString();
 
             // Find or create subject and project references
-            findOrCreateSubjectAndProject(newSubjectName, newProjectName, new OnSubjectAndProjectEnsuredListener() {
+            findOrCreateSubjectAndProject(newSubjectName, newProjectName, dueDate[0], dueTime[0], new OnSubjectAndProjectEnsuredListener() {
                 @Override
                 public void onReferencesReady(DocumentReference subjectRef, DocumentReference projectRef) {
                     // Prepare the updated task data
@@ -682,7 +682,7 @@ public class Tasks extends AppCompatActivity {
         builder.show();
     }
 
-    private void findOrCreateSubjectAndProject(String subjectName, String projectName,
+    private void findOrCreateSubjectAndProject(String subjectName, String projectName, Date dueDate, Date dueTime,
                                                OnSubjectAndProjectEnsuredListener listener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
@@ -730,8 +730,8 @@ public class Tasks extends AppCompatActivity {
                                     // Create new project
                                     Map<String, Object> projectData = new HashMap<>();
                                     projectData.put("projectDescription", "None");
-                                    projectData.put("projectDueDate", "Not set");
-                                    projectData.put("projectDueTime", "Not set");
+                                    projectData.put("projectDueDate", dueDate);
+                                    projectData.put("projectDueTime", dueTime);
                                     projectData.put("projectName", projectName);
                                     projectData.put("projectStatus", "Active");
                                     ArrayList<DocumentReference> projectSubjects = new ArrayList<>();

@@ -74,7 +74,9 @@ public class Firebase {
 
     //------------------------------------Projects
 
-    public void createNewProject(String projectName, String projectDescription, String projectStatus, List<String> subjectIds, OnProjectCreatedListener listener) {
+    public void createNewProject(String projectName, String projectDescription, String projectStatus,
+                                 List<DocumentReference> subjectIds, Date projectDueDate,
+                                 Date projectDueTime, OnProjectCreatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("User not signed in");
@@ -83,21 +85,21 @@ public class Firebase {
 
         String userId = currentUser.getUid();
 
-        // Create a new Project object
-        Projects.Project newProject = new Projects.Project(projectName, projectDescription, projectStatus);
-
-        // Convert subject IDs to DocumentReferences
-        List<DocumentReference> subjectReferences = new ArrayList<>();
-        for (String subjectId : subjectIds) {
-            DocumentReference subjectRef = db.collection("users").document(userId).collection("subjects").document(subjectId);
-            subjectReferences.add(subjectRef);
-        }
-        newProject.setProjectSubjects(subjectReferences);
+        // Create a Map to hold all project attributes
+        Map<String, Object> newProject = new HashMap<>();
+        newProject.put("projectName", projectName);
+        newProject.put("projectDescription", projectDescription);
+        newProject.put("projectStatus", projectStatus);
+        newProject.put("projectSubjects", subjectIds);
+        newProject.put("projectDueDate", projectDueDate != null ? new Timestamp(projectDueDate) : null);
+        newProject.put("projectDueTime", projectDueTime != null ? new Timestamp(projectDueTime) : null);
 
         // Add the new project to Firestore
         db.collection("users").document(userId).collection("projects")
                 .add(newProject)
                 .addOnSuccessListener(documentReference -> {
+                    // Add the project ID to the map after successful creation
+                    newProject.put("projectId", documentReference.getId());
                     listener.onSuccess();
                 })
                 .addOnFailureListener(e -> listener.onFailure("Error creating project: " + e.getMessage()));
