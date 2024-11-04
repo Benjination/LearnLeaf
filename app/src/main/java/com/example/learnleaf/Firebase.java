@@ -3,6 +3,7 @@ package com.example.learnleaf;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ScrollView;
 
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -275,6 +276,8 @@ public class Firebase {
                     listener.onFailure("Failed to fetch subjects: " + e.getMessage());
                 });
     }
+
+
 
     public interface OnAllSubjectsFetchedListener {
         void onSuccess(List<Subjects.Subject> subjects);

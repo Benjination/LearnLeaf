@@ -15,6 +15,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,6 +28,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
@@ -512,6 +514,7 @@ public class Tasks extends AppCompatActivity {
                                 Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
                             }
                         });
+
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(Tasks.this, "Error deleting task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -715,75 +718,91 @@ public class Tasks extends AppCompatActivity {
         }
         String userId = currentUser.getUid();
 
-        // Find or create subject
-        db.collection("users").document(userId).collection("subjects")
-                .whereEqualTo("subjectName", subjectName)
-                .get()
-                .addOnSuccessListener(subjectQuerySnapshot -> {
-                    DocumentReference subjectRef;
-                    if (subjectQuerySnapshot.isEmpty()) {
-                        // Create new subject with defaults
-                        Map<String, Object> subjectData = new HashMap<>();
-                        subjectData.put("subjectName", subjectName);
-                        subjectData.put("subjectColor", "#b00b00");
-                        subjectData.put("subjectSemester", "Fall");
-                        subjectData.put("subjectStatus", "Active");
+        // Handle subject reference
+        if (subjectName == null || subjectName.trim().isEmpty()) {
+            // Use noneSubject reference
+            DocumentReference noneSubjectRef = db.collection("noneSubject").document("noneSubject");
+            handleProjectReference(noneSubjectRef, projectName, dueDate, dueTime, listener);
+        } else {
+            // Find or create subject
+            db.collection("users").document(userId).collection("subjects")
+                    .whereEqualTo("subjectName", subjectName)
+                    .get()
+                    .addOnSuccessListener(subjectQuerySnapshot -> {
+                        DocumentReference subjectRef;
+                        if (subjectQuerySnapshot.isEmpty()) {
+                            // Create new subject with defaults
+                            Map<String, Object> subjectData = new HashMap<>();
+                            subjectData.put("subjectName", subjectName);
+                            subjectData.put("subjectColor", "#b00b00");
+                            subjectData.put("subjectSemester", "Fall");
+                            subjectData.put("subjectStatus", "Active");
 
-                        subjectRef = db.collection("users").document(userId).collection("subjects").document();
-                        subjectRef.set(subjectData)
-                                .addOnSuccessListener(aVoid -> {
-                                    listener.onReferencesReady(subjectRef, null); // Pass null for projectRef initially
-                                })
-                                .addOnFailureListener(e -> {
-                                    Log.e("CreateTask", "Error creating subject", e);
-                                    listener.onFailure("Error creating subject: " + e.getMessage());
-                                });
-                    } else {
-                        subjectRef = subjectQuerySnapshot.getDocuments().get(0).getReference();
-                        listener.onReferencesReady(subjectRef, null); // Pass existing subjectRef
-                    }
+                            subjectRef = db.collection("users").document(userId).collection("subjects").document();
+                            subjectRef.set(subjectData)
+                                    .addOnSuccessListener(aVoid -> handleProjectReference(subjectRef, projectName, dueDate, dueTime, listener))
+                                    .addOnFailureListener(e -> {
+                                        Log.e("CreateTask", "Error creating subject", e);
+                                        listener.onFailure("Error creating subject: " + e.getMessage());
+                                    });
+                        } else {
+                            subjectRef = subjectQuerySnapshot.getDocuments().get(0).getReference();
+                            handleProjectReference(subjectRef, projectName, dueDate, dueTime, listener);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("CreateTask", "Error finding/creating subject", e);
+                        listener.onFailure("Error finding/creating subject: " + e.getMessage());
+                    });
+        }
+    }
 
-                    // Find or create project
-                    db.collection("users").document(userId).collection("projects")
-                            .whereEqualTo("projectName", projectName)
-                            .get()
-                            .addOnSuccessListener(projectQuerySnapshot -> {
-                                DocumentReference projectRef;
-                                if (projectQuerySnapshot.isEmpty()) {
-                                    // Create new project
-                                    Map<String, Object> projectData = new HashMap<>();
-                                    projectData.put("projectDescription", "None");
-                                    projectData.put("projectDueDate", dueDate);
-                                    projectData.put("projectDueTime", dueTime);
-                                    projectData.put("projectName", projectName);
-                                    projectData.put("projectStatus", "Active");
-                                    ArrayList<DocumentReference> projectSubjects = new ArrayList<>();
-                                    projectSubjects.add(subjectRef);
-                                    projectData.put("projectSubjects", projectSubjects);
+    private void handleProjectReference(DocumentReference subjectRef, String projectName, Date dueDate, Date dueTime,
+                                        OnSubjectAndProjectEnsuredListener listener) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        String userId = currentUser.getUid();
 
-                                    projectRef = db.collection("users").document(userId).collection("projects").document();
-                                    projectRef.set(projectData)
-                                            .addOnSuccessListener(aVoid -> {
-                                                listener.onReferencesReady(subjectRef, projectRef);
-                                            })
-                                            .addOnFailureListener(e -> {
-                                                Log.e("CreateTask", "Error creating project", e);
-                                                listener.onFailure("Error creating project: " + e.getMessage());
-                                            });
-                                } else {
-                                    projectRef = projectQuerySnapshot.getDocuments().get(0).getReference();
-                                    listener.onReferencesReady(subjectRef, projectRef);
-                                }
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e("CreateTask", "Error finding/creating project", e);
-                                listener.onFailure("Error finding/creating project: " + e.getMessage());
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("CreateTask", "Error finding/creating subject", e);
-                    listener.onFailure("Error finding/creating subject: " + e.getMessage());
-                });
+        if (projectName == null || projectName.trim().isEmpty()) {
+            // Use noneProject reference
+            DocumentReference noneProjectRef = db.collection("noneProject").document("noneProject");
+            listener.onReferencesReady(subjectRef, noneProjectRef);
+        } else {
+            // Find or create project
+            db.collection("users").document(userId).collection("projects")
+                    .whereEqualTo("projectName", projectName)
+                    .get()
+                    .addOnSuccessListener(projectQuerySnapshot -> {
+                        DocumentReference projectRef;
+                        if (projectQuerySnapshot.isEmpty()) {
+                            // Create new project
+                            Map<String, Object> projectData = new HashMap<>();
+                            projectData.put("projectDescription", "");
+                            projectData.put("projectDueDate", dueDate);
+                            projectData.put("projectDueTime", dueTime);
+                            projectData.put("projectName", projectName);
+                            projectData.put("projectStatus", "Not Started");
+                            ArrayList<DocumentReference> projectSubjects = new ArrayList<>();
+                            projectSubjects.add(subjectRef);
+                            projectData.put("projectSubjects", projectSubjects);
+
+                            projectRef = db.collection("users").document(userId).collection("projects").document();
+                            projectRef.set(projectData)
+                                    .addOnSuccessListener(aVoid -> listener.onReferencesReady(subjectRef, projectRef))
+                                    .addOnFailureListener(e -> {
+                                        Log.e("CreateTask", "Error creating project", e);
+                                        listener.onFailure("Error creating project: " + e.getMessage());
+                                    });
+                        } else {
+                            projectRef = projectQuerySnapshot.getDocuments().get(0).getReference();
+                            listener.onReferencesReady(subjectRef, projectRef);
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e("CreateTask", "Error finding/creating project", e);
+                        listener.onFailure("Error finding/creating project: " + e.getMessage());
+                    });
+        }
     }
 
 
@@ -808,8 +827,6 @@ public class Tasks extends AppCompatActivity {
             }
         });
     }
-
-
 
 
     public static class Task {

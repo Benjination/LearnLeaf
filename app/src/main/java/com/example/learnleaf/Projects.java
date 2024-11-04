@@ -436,7 +436,7 @@ public class Projects extends AppCompatActivity {
         public Project() {
             this.projectSubjects = new ArrayList<>();
             this.projectDescription = "";
-            this.projectName = "None";
+            this.projectName = "";
             this.projectStatus = "Not Started";
         }
 
