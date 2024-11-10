@@ -22,6 +22,7 @@ public class Navigation extends Fragment {
 
         mAuth = FirebaseAuth.getInstance();
 
+        //Creates quick navigation methods for User-Authentication restricted pages
         TextView tasksNav = view.findViewById(R.id.nav_tasks);
         TextView subjectsNav = view.findViewById(R.id.nav_subjects);
         TextView projectsNav = view.findViewById(R.id.nav_projects);
@@ -37,11 +38,13 @@ public class Navigation extends Fragment {
         return view;
     }
 
+    //Implements user selected navigation
     private void navigateTo(Class<?> destinationClass) {
         Intent intent = new Intent(getActivity(), destinationClass);
         startActivity(intent);
     }
 
+    //Special case: severs connection to user on Firebase and returns to Login page
     private void logout() {
         mAuth.signOut();
         Intent intent = new Intent(getActivity(), Login.class);

@@ -5,6 +5,7 @@ import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -16,6 +17,9 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
@@ -59,29 +63,34 @@ public class Projects extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         firebase = new Firebase(this);
         projectsContainer = findViewById(R.id.projectsContainer);
-        ImageView addnew = findViewById(R.id.addnew);
+        ImageView addNew = findViewById(R.id.addnew);
 
-        addnew.setOnClickListener(v -> showCreateProjectDialog());
+        addNew.setOnClickListener(v -> showCreateProjectDialog());
 
-        fetchProjectsForCurrentUser();
+        //Creates list of Projects to be displayed in item_blocks in Scrollview
+        firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
+            @Override
+            public void onSuccess(List<Projects.Project> projects) {
+                // Update your UI with the new list of projects
+                updateUI(projects);
+            }
+
+            @Override
+            public void onFailure(String errorMessage) {
+                Toast.makeText(Projects.this, "Failed to fetch projects: " + errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    private String getCurrentUserId() {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser != null) {
-            return currentUser.getUid();
-        } else {
-            // Handle the case where no user is signed in
-            Toast.makeText(this, "No user signed in", Toast.LENGTH_SHORT).show();
-            return null;
-        }
-    }
-
+    //This is part of the function of the addNew button -> Calls dialog_create_project to collect
+    //project information from the user, and adds new Project to Firebase and localDatabase using
+    //Firebase.java function "createNewProject()"
     private void showCreateProjectDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Create New Project");
 
-        String userId = getCurrentUserId();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        String userId = currentUser.getUid();
 
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_create_project, null);
         final EditText projectNameInput = viewInflated.findViewById(R.id.projectNameInput);
@@ -91,7 +100,7 @@ public class Projects extends AppCompatActivity {
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
         final EditText subjectInput = viewInflated.findViewById(R.id.subjectInput);
 
-        // Set up the status spinner
+        // Sets up the status spinner
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.status_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -102,7 +111,7 @@ public class Projects extends AppCompatActivity {
         final Date[] projectDueDate = {null};
         final Date[] projectDueTime = {null};
 
-        // Set up date picker
+        //SubMenu interface that allows user to select dates instead of entering them
         projectDueDateButton.setOnClickListener(v -> {
             DatePickerDialog datePickerDialog = new DatePickerDialog(this,
                     (view, year, month, dayOfMonth) -> {
@@ -118,7 +127,7 @@ public class Projects extends AppCompatActivity {
             datePickerDialog.show();
         });
 
-        // Set up time picker
+        //Submenu interface that allows user to select time from 24 hour clock rather than entering a specific time
         projectDueTimeButton.setOnClickListener(v -> {
             TimePickerDialog timePickerDialog = new TimePickerDialog(this,
                     (view, hourOfDay, minute) -> {
@@ -135,7 +144,7 @@ public class Projects extends AppCompatActivity {
 
         builder.setView(viewInflated);
 
-        builder.setPositiveButton(android.R.string.ok, null); // We'll set the listener later
+        builder.setPositiveButton(android.R.string.ok, null);
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
 
         AlertDialog dialog = builder.create();
@@ -165,7 +174,7 @@ public class Projects extends AppCompatActivity {
                 String subjectString = subjectInput.getText().toString();
                 List<String> projectSubjects = Arrays.asList(subjectString.split(",\\s*"));
 
-                // Convert subject strings to DocumentReferences
+                // Converts subject strings to DocumentReferences
                 List<DocumentReference> subjectRefs = new ArrayList<>();
                 for (String subject : projectSubjects) {
                     subjectRefs.add(db.collection("users").document(userId).collection("subjects").document(subject));
@@ -179,6 +188,10 @@ public class Projects extends AppCompatActivity {
         dialog.show();
     }
 
+    //Calls the createNewProject function in Firebase
+    //Calls require changing the attributes, and I wanted to include toast messages
+    //These could have been done on each function call, but this is a more organized approach that is easier to understand
+    //Most of my calls to firebase will be in this fashion
     private void createNewProject(String projectName, String projectDescription, String projectStatus,
                                   List<DocumentReference> projectSubjects, Date projectDueDate, Date projectDueTime) {
         firebase.createNewProject(projectName, projectDescription, projectStatus, projectSubjects,projectDueDate,
@@ -186,7 +199,18 @@ public class Projects extends AppCompatActivity {
             @Override
             public void onSuccess() {
                 Toast.makeText(Projects.this, "Project created successfully", Toast.LENGTH_SHORT).show();
-                fetchProjectsForCurrentUser(); // Refresh the list
+                firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
+                    @Override
+                    public void onSuccess(List<Projects.Project> projects) {
+                        // Update your UI with the new list of projects
+                        updateUI(projects);
+                    }
+
+                    @Override
+                    public void onFailure(String errorMessage) {
+                        Toast.makeText(Projects.this, "Failed to fetch projects: " + errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
 
             @Override
@@ -196,35 +220,21 @@ public class Projects extends AppCompatActivity {
         });
     }
 
-    private void fetchProjectsForCurrentUser() {
-        firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
-            @Override
-            public void onSuccess(List<Project> projects) {
-                updateUI(projects);
-            }
-
-            @Override
-            public void onFailure(String errorMessage) {
-                Toast.makeText(Projects.this, errorMessage, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-
+    //This opens a subMenu called dialog_edit_project to allow the user to edit an existing project
     private void showEditProjectDialog(Project project) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Edit Project");
 
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_project, null);
         final EditText projectNameInput = viewInflated.findViewById(R.id.projectNameInput);
-        final EditText projectDescriptionInput = viewInflated.findViewById(R.id.projectDescriptionInput); // New input for description
+        final EditText projectDescriptionInput = viewInflated.findViewById(R.id.projectDescriptionInput);
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
 
-        // Pre-fill the fields with current project data
+        //Pre-fills the input fields with current project data
         projectNameInput.setText(project.getProjectName());
-        projectDescriptionInput.setText(project.getProjectDescription()); // Set description
+        projectDescriptionInput.setText(project.getProjectDescription());
 
-        // Set up the status spinner
+        //Sets up the status spinner
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.status_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -240,10 +250,8 @@ public class Projects extends AppCompatActivity {
             String projectDescription = projectDescriptionInput.getText().toString();
             String status = statusSpinner.getSelectedItem().toString();
 
-            // Pass an empty list for subjects if you're not handling them in the dialog
             List<String> projectSubjects = new ArrayList<>();
 
-            // Call the updateProject method
             updateProject(project.getProjectName(), newProjectName, projectDescription, status, projectSubjects);// Updated call
         });
 
@@ -252,14 +260,8 @@ public class Projects extends AppCompatActivity {
         builder.show();
     }
 
+    //Calls method in Firebase and Toasts to your health
     private void deleteProject(String projectName, View blockView) {
-        FirebaseUser currentUser = firebase.getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Use only the project name to delete
         firebase.deleteProject(projectName, new Firebase.OnProjectDeletedListener() {
             @Override
             public void onSuccess() {
@@ -274,7 +276,7 @@ public class Projects extends AppCompatActivity {
         });
     }
 
-
+    //Double checks with user to make they want to delete a project
     private void showDeleteConfirmationDialog(Project project, View blockView) {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Project")
@@ -285,52 +287,60 @@ public class Projects extends AppCompatActivity {
                 .show();
     }
 
-    public void updateProject(String oldProjectName, String newProjectName, String projectDescription, String projectStatus, List<String> subjectIds) {
+
+    public void updateProject(String oldProjectName, String newProjectName, String projectDescription, String projectStatus, List<String> subjectNames) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
-            // Handle the case where the user is not signed in
             Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String userId = currentUser.getUid();
 
-        // Query to find the project document by its name
+        // Query for the project using the old project name
         db.collection("users").document(userId).collection("projects")
-                .whereEqualTo("name", oldProjectName)
+                .whereEqualTo("projectName", oldProjectName)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
-                        // Assuming project names are unique, get the first document
-                        DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String projectId = documentSnapshot.getId();
+                        // Get the first (and should be only) matching document
+                        DocumentSnapshot projectDoc = queryDocumentSnapshots.getDocuments().get(0);
+                        String projectId = projectDoc.getId();
 
-                        // Create a map to hold the updated fields
+                        // Prepare the updates
                         Map<String, Object> updates = new HashMap<>();
-                        updates.put("name", newProjectName);
-                        updates.put("description", projectDescription);
-                        updates.put("status", projectStatus);
+                        updates.put("projectName", newProjectName);
+                        updates.put("projectDescription", projectDescription);
+                        updates.put("projectStatus", projectStatus);
 
-                        // Convert subject IDs to DocumentReferences if needed
-                        if (!subjectIds.isEmpty()) {
-                            List<DocumentReference> subjectReferences = new ArrayList<>();
-                            for (String subjectId : subjectIds) {
-                                DocumentReference subjectRef = db.collection("users").document(userId).collection("subjects").document(subjectId);
-                                subjectReferences.add(subjectRef);
+                        // Handle subject references
+                        if (!subjectNames.isEmpty()) {
+                            List<DocumentReference> subjectRefs = new ArrayList<>();
+                            for (String subjectName : subjectNames) {
+                                // Query to find the subject document by name
+                                db.collection("users").document(userId).collection("subjects")
+                                        .whereEqualTo("subjectName", subjectName)
+                                        .get()
+                                        .addOnSuccessListener(subjectQuerySnapshot -> {
+                                            if (!subjectQuerySnapshot.isEmpty()) {
+                                                DocumentSnapshot subjectDoc = subjectQuerySnapshot.getDocuments().get(0);
+                                                subjectRefs.add(subjectDoc.getReference());
+
+                                                // If this is the last subject, update the project
+                                                if (subjectRefs.size() == subjectNames.size()) {
+                                                    updates.put("projectSubjects", subjectRefs);
+                                                    updateProjectInFirestore(userId, projectId, updates);
+                                                }
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(this, "Error finding subject: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        });
                             }
-                            updates.put("projectSubjects", subjectReferences);
+                        } else {
+                            // If no subjects, update project immediately
+                            updateProjectInFirestore(userId, projectId, updates);
                         }
-
-                        // Update the existing project in Firestore
-                        db.collection("users").document(userId).collection("projects").document(projectId)
-                                .update(updates)
-                                .addOnSuccessListener(aVoid -> {
-                                    Toast.makeText(this, "Project updated successfully", Toast.LENGTH_SHORT).show();
-                                    // Refresh your UI or project list here
-                                })
-                                .addOnFailureListener(e -> {
-                                    Toast.makeText(this, "Error updating project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                });
                     } else {
                         Toast.makeText(this, "Project not found", Toast.LENGTH_SHORT).show();
                     }
@@ -339,6 +349,33 @@ public class Projects extends AppCompatActivity {
                     Toast.makeText(this, "Error finding project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
+
+    private void updateProjectInFirestore(String userId, String projectId, Map<String, Object> updates) {
+        db.collection("users").document(userId).collection("projects").document(projectId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Project updated successfully", Toast.LENGTH_SHORT).show();
+                    // Refresh your UI or project list here
+                    firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
+                        @Override
+                        public void onSuccess(List<Projects.Project> projects) {
+                            // Update your UI with the new list of projects
+                            updateUI(projects);
+                        }
+
+                        @Override
+                        public void onFailure(String errorMessage) {
+                            Toast.makeText(Projects.this, "Failed to refresh projects: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error updating project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+
+
 
     private void updateUI(List<Project> projects) {
         if (projectsContainer == null) {
@@ -354,8 +391,6 @@ public class Projects extends AppCompatActivity {
             projectsContainer.addView(noProjectsText);
             return;
         }
-
-        String userId = getCurrentUserId();
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
         SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
@@ -379,6 +414,16 @@ public class Projects extends AppCompatActivity {
             Date dueDate = project.getProjectDueDate();
             Date dueTime = project.getProjectDueTime();
 
+            editButton.setOnClickListener(v -> {
+                Log.d("EditButton", "Edit button clicked");
+                showEditProjectDialog(project);
+            });
+
+            deleteButton.setOnClickListener(v -> {
+                Log.d("DeleteButton", "Delete button clicked");
+                showDeleteConfirmationDialog(project, blockView);
+            });
+
             if (dueDate != null) {
                 dueDateTextView.setText("Due: " + dateFormat.format(dueDate));
             } else {
@@ -391,34 +436,57 @@ public class Projects extends AppCompatActivity {
                 dueTimeTextView.setText("Time: Not set");
             }
 
-            // Convert DocumentReferences to strings (using their IDs)
-            List<String> subjectIds = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-                subjectIds = project.getProjectSubjects().stream()
-                        .map(DocumentReference::getId)
-                        .collect(Collectors.toList());
+            // Fetch subject names based on DocumentReferences
+            List<DocumentReference> subjectRefs = project.getProjectSubjects();
+
+            if (subjectRefs != null && !subjectRefs.isEmpty()) {
+                List<String> subjectNames = new ArrayList<>();
+                Task<Void> fetchSubjectsTask = null;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    fetchSubjectsTask = Tasks.whenAllComplete(
+                            subjectRefs.stream()
+                                    .map(ref -> ref.get().continueWith(task -> {
+                                        if (task.isSuccessful() && task.getResult() != null) {
+                                            DocumentSnapshot subjectDoc = task.getResult();
+                                            String subjectName = subjectDoc.getString("subjectName");
+                                            if (subjectName != null) {
+                                                subjectNames.add(subjectName);
+                                            }
+                                        }
+                                        return null; // Return null since we don't need a result
+                                    }))
+                                    .collect(Collectors.toList())
+                    ).continueWith(task -> {
+                        // Now join the subject names into a string
+                        String subjectsString = String.join(", ", subjectNames);
+                        extraTextView.setText("Subjects: " + subjectsString);
+
+                        return null; // Return null since we don't need a result
+                    });
+                }
+
+                // Update UI after fetching all subjects
+                fetchSubjectsTask.addOnSuccessListener(aVoid -> {
+                    String contentDescription = String.format("Project: %s, Status: %s, Subjects: %s, Due Date: %s, Due Time: %s",
+                            project.getProjectName(), project.getProjectStatus(), String.join(", ", subjectNames),
+                            dueDate != null ? dateFormat.format(dueDate) : "Not set",
+                            dueTime != null ? timeFormat.format(dueTime) : "Not set");
+                    cardView.setContentDescription(contentDescription);
+
+                    // Add the block view to the container after setting everything
+                    projectsContainer.addView(blockView);
+                });
+
+                // Handle failure to fetch subjects
+                fetchSubjectsTask.addOnFailureListener(e -> {
+                    extraTextView.setText("Subjects: Error fetching subjects");
+                    projectsContainer.addView(blockView); // Add view even if there's an error
+                });
+
+            } else {
+                extraTextView.setText("Subjects: None");
+                projectsContainer.addView(blockView); // Add view immediately if no subjects
             }
-
-            // Now join the string IDs
-            String subjectsString = String.join(", ", subjectIds);
-            extraTextView.setText("Subjects: " + subjectsString);
-
-            String contentDescription = String.format("Project: %s, Status: %s, Subjects: %s, Due Date: %s, Due Time: %s",
-                    project.getProjectName(), project.getProjectStatus(), subjectsString,
-                    dueDate != null ? dateFormat.format(dueDate) : "Not set",
-                    dueTime != null ? timeFormat.format(dueTime) : "Not set");
-            cardView.setContentDescription(contentDescription);
-
-            editButton.setOnClickListener(v -> {
-                // Handle edit action
-                showEditProjectDialog(project);
-            });
-
-            deleteButton.setOnClickListener(v -> {
-                showDeleteConfirmationDialog(project, blockView);
-            });
-
-            projectsContainer.addView(blockView);
         }
     }
 

@@ -27,6 +27,8 @@ public class Login extends AppCompatActivity {
         EditText password = findViewById(R.id.password);
         password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
 
+        //back button controls-> navigate from login to SignUp
+        //Actual text says "Sign Up", not "Back"
         back.setOnClickListener(v ->
         {
             Intent intent = new Intent(Login.this, SignUp.class);
@@ -34,8 +36,9 @@ public class Login extends AppCompatActivity {
             finish();
         });
 
+        //submit button controls-> tests user input is valid finds user information on database and allows access to
+        //User-Authentication restricted pages
         submit.setOnClickListener(v -> {
-            //Checks EditText initialization
             if (email == null) {
                 Toast.makeText(Login.this, "Error: Fields not initialized", Toast.LENGTH_SHORT).show();
                 return;
@@ -48,7 +51,7 @@ public class Login extends AppCompatActivity {
             if (em.isEmpty() || pw.isEmpty()) {
                 Toast.makeText(Login.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
             } else {
-                //Method to Login in Firebase.class
+                //Attempts to find user in Firestore, Authenticates, navigates to Tasks on Success
                 firebase.signIn(em, pw, new Firebase.AuthCallback() {
                     @Override
                     public void onSuccess(FirebaseUser user) {

@@ -115,9 +115,10 @@
                 android:id="@+id/editButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:contentDescription="Edit task"
-                app:tint="?attr/colorControlNormal"
-                app:srcCompat="@drawable/edit"/>
+                android:background="?android:attr/selectableItemBackground"
+                android:contentDescription="Edit item"
+                android:scaleType="fitCenter"
+                android:src="@drawable/edit"/>
 
             <Space
                 android:layout_width="0dp"
@@ -128,9 +129,11 @@
                 android:id="@+id/deleteButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:contentDescription="Delete task"
-                app:tint="?attr/colorControlNormal"
-                app:srcCompat="@drawable/tinytrash"/>
+                android:layout_marginStart="148dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:contentDescription="Delete item"
+                android:scaleType="fitCenter"
+                android:src="@drawable/tinytrash"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

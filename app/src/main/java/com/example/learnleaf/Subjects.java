@@ -30,6 +30,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.PropertyName;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -242,6 +243,9 @@ public class Subjects extends AppCompatActivity {
             statusTextView.setText("Status: " + subject.getStatus());
             extraTextView.setText("Semester: " + subject.getSemester());
 
+            // Debug log to check the color value
+            Log.d("UpdateUI", "Subject: " + subject.getSubjectName() + ", Color: " + subject.getSubjectColor());
+
             int color = parseColor(subject.getSubjectColor());
             cardView.setCardBackgroundColor(color);
 
@@ -249,6 +253,10 @@ public class Subjects extends AppCompatActivity {
                 nameTextView.setTextColor(Color.WHITE);
                 statusTextView.setTextColor(Color.WHITE);
                 extraTextView.setTextColor(Color.WHITE);
+            } else {
+                nameTextView.setTextColor(Color.BLACK);
+                statusTextView.setTextColor(Color.BLACK);
+                extraTextView.setTextColor(Color.BLACK);
             }
 
             String contentDescription = String.format("Subject: %s, Status: %s, Semester: %s",
@@ -262,18 +270,23 @@ public class Subjects extends AppCompatActivity {
         }
     }
 
-    // Helper method to parse color string to color int
+    // Improved parseColor method
     private int parseColor(String colorString) {
         if (colorString == null || colorString.isEmpty()) {
-            // Return a default color or throw a more specific exception
-            return Color.BLACK; // or any other default color
+            Log.w("UpdateUI", "Empty or null color string, using default");
+            return Color.LTGRAY; // Default color
         }
         try {
-            return Color.parseColor(colorString);
-        } catch (IllegalArgumentException e) {
-            // Handle invalid color string
-            Log.e("Subjects", "Invalid color string: " + colorString);
-            return Color.BLACK; // or any other default color
+            if (colorString.startsWith("#")) {
+                return Color.parseColor(colorString);
+            } else {
+                // Try to parse color name
+                Field field = Color.class.getField(colorString.toUpperCase());
+                return field.getInt(null);
+            }
+        } catch (Exception e) {
+            Log.e("UpdateUI", "Error parsing color: " + colorString, e);
+            return Color.LTGRAY; // Default color if parsing fails
         }
     }
 
@@ -305,29 +318,28 @@ public class Subjects extends AppCompatActivity {
             this.subjectName = subjectName;
         }
 
+        //Setters
+        public void setSubjectColor(String color){this.subjectColor = color;}
+        public void setSubjectId(String documentId) {this.subjectId = documentId;}
+        public void setSubjectName(String newSubjectName) {this.subjectName = newSubjectName;}
+        public void setSemester(String newSemester) {this.subjectSemester = newSemester;}
+        public void setStatus(String newStatus) {this.subjectStatus = newStatus;}
+
         // Getters
         @PropertyName("subjectSemester")
         public String getSemester() {
             return subjectSemester;
         }
-
         @PropertyName("subjectStatus")
         public String getStatus() {
             return subjectStatus;
         }
-
         public String getSubjectColor() {
             return subjectColor;
         }
-
         public String getSubjectName() {
             return subjectName;
         }
-
-        public String getSubjectId() {
-            return subjectId;
-        }
+        public String getSubjectId() {return subjectId;}
     }
-
-
 }

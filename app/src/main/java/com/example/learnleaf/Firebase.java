@@ -1,6 +1,7 @@
 package com.example.learnleaf;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.ScrollView;
@@ -32,6 +33,7 @@ public class Firebase {
     private final FirebaseAuth mAuth;
     private final FirebaseFirestore db;
     private final Context context;
+    private boolean isFirstFetch = true;
 
     public Firebase(Context context) {
         this.context = context;
@@ -39,8 +41,10 @@ public class Firebase {
         this.db = FirebaseFirestore.getInstance();
     }
 
+    //Local Database
     public static ArrayList<Subjects.Subject> localSubjects = new ArrayList<>();
     public static ArrayList<Projects.Project> localProjects = new ArrayList<>();
+    public static List<Tasks.Task> localTasks = new ArrayList<>();
 
     public FirebaseUser getCurrentUser() {
         return mAuth.getCurrentUser();
@@ -59,6 +63,7 @@ public class Firebase {
                 });
     }
 
+    //generic getter for Firebase Items
     public static synchronized Firebase getInstance(Context context) {
         if (instance == null) {
             instance = new Firebase(context);
@@ -66,7 +71,7 @@ public class Firebase {
         return instance;
     }
 
-
+    //Part of the Password verification process
     public interface AuthCallback {
         void onSuccess(FirebaseUser user);
 
@@ -75,6 +80,7 @@ public class Firebase {
 
     //------------------------------------Projects
 
+    //Adds new Project to localDatabase and Firebase
     public void createNewProject(String projectName, String projectDescription, String projectStatus,
                                  List<DocumentReference> subjectIds, Date projectDueDate,
                                  Date projectDueTime, OnProjectCreatedListener listener) {
@@ -86,7 +92,7 @@ public class Firebase {
 
         String userId = currentUser.getUid();
 
-        // Create a Map to hold all project attributes
+        //This map ensures the project information on Firebase is in the correct order and format
         Map<String, Object> newProject = new HashMap<>();
         newProject.put("projectName", projectName);
         newProject.put("projectDescription", projectDescription);
@@ -95,18 +101,30 @@ public class Firebase {
         newProject.put("projectDueDate", projectDueDate != null ? new Timestamp(projectDueDate) : null);
         newProject.put("projectDueTime", projectDueTime != null ? new Timestamp(projectDueTime) : null);
 
-        // Add the new project to Firestore
+        //Adds to Firestore
         db.collection("users").document(userId).collection("projects")
                 .add(newProject)
                 .addOnSuccessListener(documentReference -> {
                     // Add the project ID to the map after successful creation
                     newProject.put("projectId", documentReference.getId());
                     listener.onSuccess();
+                    //adds new project to local database
+                    Projects.Project localProject = new Projects.Project(
+                            projectName,
+                            projectDescription,
+                            projectStatus,
+                            subjectIds,
+                            projectDueDate,
+                            projectDueTime
+                    );
+                    localProjects.add(localProject); //Adds to local database
                 })
                 .addOnFailureListener(e -> listener.onFailure("Error creating project: " + e.getMessage()));
     }
 
 
+    //Currently fetches from Firebase with each call, Might change later
+    // ------>(Initial call fetches all information from Firestore, additional calls pull from local database)
     public void fetchProjectsForCurrentUser(OnProjectsFetchedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -133,6 +151,7 @@ public class Firebase {
     }
 
 
+    //Removes project from Firestore and local database
     public void deleteProject(String projectName, OnProjectDeletedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -154,7 +173,10 @@ public class Firebase {
                         // Delete the project document
                         db.collection("users").document(userId).collection("projects").document(documentId)
                                 .delete()
-                                .addOnSuccessListener(aVoid -> listener.onSuccess())
+                                .addOnSuccessListener(aVoid -> {
+                                    removeProjectFromLocalList(projectName);  //Removes from local Database
+                                    listener.onSuccess();
+                                })
                                 .addOnFailureListener(e -> listener.onFailure("Error deleting project: " + e.getMessage()));
                     } else {
                         listener.onFailure("Project not found");
@@ -163,20 +185,29 @@ public class Firebase {
                 .addOnFailureListener(e -> listener.onFailure("Error finding project: " + e.getMessage()));
     }
 
+    //Removes project from local database for SDK 34+ (Might be compatibility requirement)
+    //Local Database is not currently implemented, so should not create any errors at this point of development
+    private void removeProjectFromLocalList(String projectName) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            localProjects.removeIf(project -> project.getProjectName().equals(projectName));
+        }
+    }
 
+    //data check
     public interface OnProjectCreatedListener {
         void onSuccess();
 
         void onFailure(String errorMessage);
     }
 
+    //data Check
     public interface OnProjectDeletedListener {
         void onSuccess();
 
         void onFailure(String errorMessage);
     }
 
-
+    //data check
     public interface OnProjectsFetchedListener {
         void onSuccess(List<Projects.Project> projects);
 
@@ -185,6 +216,7 @@ public class Firebase {
 
     //--------------------------------Subjects
 
+    //edit subject feature
     public void updateSubject(Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, OnSubjectUpdatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -194,24 +226,41 @@ public class Firebase {
 
         String userId = currentUser.getUid();
 
+        // Use the subject's ID directly if available
+        if (subject.getSubjectId() != null && !subject.getSubjectId().isEmpty()) {
+            updateSubjectById(userId, subject, newSubjectName, newSemester, newColor, newStatus, listener);
+        } else {
+            // Fallback to querying by name if ID is not available
+            findAndUpdateSubject(userId, subject, newSubjectName, newSemester, newColor, newStatus, listener);
+        }
+    }
+
+    private void updateSubjectById(String userId, Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, OnSubjectUpdatedListener listener) {
+        db.collection("users").document(userId).collection("subjects").document(subject.getSubjectId())
+                .update(
+                        "subjectName", newSubjectName,
+                        "semester", newSemester,
+                        "subjectColor", newColor,
+                        "status", newStatus
+                )
+                .addOnSuccessListener(aVoid -> {
+                    updateLocalSubject(subject, newSubjectName, newSemester, newColor, newStatus);
+                    listener.onSuccess();
+                })
+                .addOnFailureListener(e -> listener.onFailure("Error updating subject: " + e.getMessage()));
+    }
+
+    private void findAndUpdateSubject(String userId, Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, OnSubjectUpdatedListener listener) {
         db.collection("users").document(userId).collection("subjects")
                 .whereEqualTo("subjectName", subject.getSubjectName())
-                .whereEqualTo("userId", currentUser.getUid())
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
                         DocumentSnapshot documentSnapshot = queryDocumentSnapshots.getDocuments().get(0);
-                        String documentId = documentSnapshot.getId(); // Get the document ID
+                        String documentId = documentSnapshot.getId();
+                        subject.setSubjectId(documentId); // Set the ID for future use
 
-                        db.collection("users").document(userId).collection("subjects").document(documentId)
-                                .update(
-                                        "subjectName", newSubjectName,
-                                        "semester", newSemester,
-                                        "subjectColor", newColor,
-                                        "status", newStatus
-                                )
-                                .addOnSuccessListener(aVoid -> listener.onSuccess())
-                                .addOnFailureListener(e -> listener.onFailure("Error updating subject: " + e.getMessage()));
+                        updateSubjectById(userId, subject, newSubjectName, newSemester, newColor, newStatus, listener);
                     } else {
                         listener.onFailure("Subject not found");
                     }
@@ -219,6 +268,22 @@ public class Firebase {
                 .addOnFailureListener(e -> listener.onFailure("Error finding subject: " + e.getMessage()));
     }
 
+    private void updateLocalSubject(Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus) {
+        subject.setSubjectName(newSubjectName);
+        subject.setSemester(newSemester);
+        subject.setSubjectColor(newColor);
+        subject.setStatus(newStatus);
+
+        // Update the subject in the localSubjects list
+        for (int i = 0; i < localSubjects.size(); i++) {
+            if (localSubjects.get(i).getSubjectId().equals(subject.getSubjectId())) {
+                localSubjects.set(i, subject);
+                break;
+            }
+        }
+    }
+
+    //Creates a new Subject in Firebase and local database
     public void createNewSubject(String subjectName, String semester, String color, OnSubjectCreatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -226,7 +291,7 @@ public class Firebase {
             return;
         }
 
-        // Create a Map instead of using a Subject object
+        //This map ensures new subject is updated to Firestore in the correct order and format
         Map<String, Object> newSubject = new HashMap<>();
         newSubject.put("subjectSemester", semester);
         newSubject.put("subjectStatus", "Active");
@@ -237,9 +302,19 @@ public class Firebase {
                 .add(newSubject)
                 .addOnSuccessListener(documentReference -> listener.onSuccess())
                 .addOnFailureListener(e -> listener.onFailure("Error creating subject: " + e.getMessage()));
+
+        Subjects.Subject localSubject = new Subjects.Subject(
+                subjectName,
+                semester,
+                "Active",
+                color
+        );
+        localSubjects.add(localSubject); //Adds new subject to local database
     }
 
 
+    //Fetches all Subject data from database
+    //Might change later to load local database first, and pull from Firebase on pull down update
     public void fetchAllSubjectsForCurrentUser(OnAllSubjectsFetchedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -251,25 +326,23 @@ public class Firebase {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Subjects.Subject> allSubjects = new ArrayList<>();
-                    // Clear the existing local storage array before adding new subjects
-                    localSubjects.clear();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Subjects.Subject subject = document.toObject(Subjects.Subject.class);
                         if (subject != null) {
-                            subject.subjectId = document.getId(); // Ensure the ID is set
+                            subject.subjectId = document.getId();
+                            subject.setSubjectColor(document.getString("subjectColor"));
                             allSubjects.add(subject);
-                            // Add the subject to the static ArrayList
-                            localSubjects.add(subject);
+
                             Log.d("SubjectFetch", "Subject: " + subject.getSubjectName()
                                     + ", Status: " + subject.getStatus()
                                     + ", Semester: " + subject.getSemester()
+                                    + ", Color: " + subject.getSubjectColor()
                                     + ", ID: " + subject.subjectId);
                         }
-                        localSubjects.clear();
-                        localSubjects.addAll(allSubjects);
-                        listener.onSuccess(localSubjects);
                     }
-                    listener.onSuccess(allSubjects);
+                    localSubjects.clear(); //Clear to avoid Duplicates
+                    localSubjects.addAll(allSubjects); //adds Firebase data to local database
+                    listener.onSuccess(localSubjects);
                 })
                 .addOnFailureListener(e -> {
                     Log.e("SubjectFetch", "Error fetching subjects", e);
@@ -277,24 +350,14 @@ public class Firebase {
                 });
     }
 
-
-
+    //data check
     public interface OnAllSubjectsFetchedListener {
         void onSuccess(List<Subjects.Subject> subjects);
 
         void onFailure(String errorMessage);
     }
 
-
-    public interface OnActiveSubjectsFetchedListener {
-        void onSuccess(List<Subjects.Subject> activeSubjects);
-
-        void onFailure(String errorMessage);
-    }
-
-
-    // Interface for the listener (unchanged)
-
+    //Deletes Subject from Firebase and local database
     public void deleteSubject(Subjects.Subject subject, OnSubjectDeletedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -322,20 +385,28 @@ public class Firebase {
                     }
                 })
                 .addOnFailureListener(e -> listener.onFailure("Error finding subject: " + e.getMessage()));
+
+        //SDK version 34+ will remove the subject from the local database
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            localSubjects.removeIf(s -> s.getSubjectId().equals(subject.getSubjectId()));
+        }
     }
 
+    //data Check
     public interface OnSubjectDeletedListener {
         void onSuccess();
 
         void onFailure(String errorMessage);
     }
 
+    //data Check
     public interface OnSubjectCreatedListener {
         void onSuccess();
 
         void onFailure(String errorMessage);
     }
 
+    //data Check
     public interface OnSubjectUpdatedListener {
         void onSuccess();
 
@@ -345,6 +416,7 @@ public class Firebase {
     //-------------------------------------TASKS
 
 
+    //Fetches all tasks from database and loads them into local database
     public void fetchTasksForCurrentUser(OnTasksFetchedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
@@ -357,21 +429,20 @@ public class Firebase {
         db.collection("users").document(userId).collection("tasks")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<Tasks.Task> tasks = new ArrayList<>();
                     List<Tasks.Task> tasksToUpdate = new ArrayList<>();
+                    localTasks.clear();
 
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Tasks.Task task = document.toObject(Tasks.Task.class);
                         if (task != null) {
                             task.setTaskId(document.getId());
                             tasksToUpdate.add(task);
-                            tasks.add(task);
+                            localTasks.add(task);
                         }
                     }
 
-                    // Fetch project and subject details for all tasks
                     fetchProjectAndSubjectDetails(tasksToUpdate, () -> {
-                        listener.onSuccess(tasks);
+                        listener.onSuccess(localTasks);
                     });
                 })
                 .addOnFailureListener(e -> {
@@ -380,11 +451,11 @@ public class Firebase {
                 });
     }
 
+    //adapter for projects and subjectgs to find references in Firestore and local database
     private void fetchProjectAndSubjectDetails(List<Tasks.Task> tasks, Runnable onComplete) {
         AtomicInteger counter = new AtomicInteger(tasks.size() * 2); // 2 operations per task
 
         for (Tasks.Task task : tasks) {
-            // Handle project reference
             if (task.getTaskProject() != null) {
                 task.getTaskProject().get().addOnSuccessListener(projectSnapshot -> {
                     if (projectSnapshot.exists()) {
@@ -405,7 +476,7 @@ public class Firebase {
                 }
             }
 
-            // Handle subject reference
+
             if (task.getTaskSubject() != null) {
                 task.getTaskSubject().get().addOnSuccessListener(subjectSnapshot -> {
                     if (subjectSnapshot.exists()) {
@@ -428,6 +499,7 @@ public class Firebase {
         }
     }
 
+    //data Check
     public interface OnTasksFetchedListener {
         void onSuccess(List<Tasks.Task> tasks);
 

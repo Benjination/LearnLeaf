@@ -10,6 +10,8 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class Profile extends AppCompatActivity {
 
+    //Design has not been created at this point of development
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
