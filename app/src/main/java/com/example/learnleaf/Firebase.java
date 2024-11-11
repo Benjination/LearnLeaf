@@ -2,23 +2,15 @@ package com.example.learnleaf;
 
 import android.content.Context;
 import android.os.Build;
-import android.os.Bundle;
 import android.util.Log;
-import android.widget.ScrollView;
-
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Currency;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;

@@ -1,6 +1,5 @@
 package com.example.learnleaf;
 
-import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
@@ -15,29 +14,16 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.firestore.DocumentReference;
-import android.util.Log;
-
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -46,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class Tasks extends AppCompatActivity {
     private LinearLayout tasksContainer;
@@ -59,19 +46,13 @@ public class Tasks extends AppCompatActivity {
         setContentView(R.layout.tasks);
 
         tasksContainer = findViewById(R.id.tasksContainer);
-        if (tasksContainer == null) {
-            throw new RuntimeException("Unable to find tasksContainer view. Check your layout file.");
-        }
-
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
         firebase = new Firebase(this);
 
         ImageView addNew = findViewById(R.id.addNewTask);
-        if (addNew == null) {
-            throw new RuntimeException("Unable to find addNewTask view. Check your layout file.");
-        }
 
+        //Calls method in firebase to update local database
         fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
             @Override
             public void onSuccess(List<Tasks.Task> tasks) {
@@ -84,19 +65,17 @@ public class Tasks extends AppCompatActivity {
                 Log.e("FetchTasks", "Error fetching tasks: " + errorMessage);
             }
         });
-
+        //addNew button launches dialog_create_task.xml
         addNew.setOnClickListener(v -> showCreateTaskDialog());
     }
 
-
-
+    //Submenu that allows users to input all data for a new task
     private void showCreateTaskDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Create New Task");
 
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_create_task, null);
 
-        // Find views
         EditText subjectInput = viewInflated.findViewById(R.id.taskSubjectTextView);
         EditText projectInput = viewInflated.findViewById(R.id.taskProjectTextView);
         EditText assignmentInput = viewInflated.findViewById(R.id.taskNameTextView);
@@ -107,37 +86,30 @@ public class Tasks extends AppCompatActivity {
         Button dueDateButton = viewInflated.findViewById(R.id.dueDateButton);
         Button dueTimeButton = viewInflated.findViewById(R.id.dueTimeButton);
 
-        // Check if any view is null
-        if (subjectInput == null || projectInput == null || assignmentInput == null ||
-                descriptionInput == null || prioritySpinner == null || statusSpinner == null ||
-                startDateButton == null || dueDateButton == null || dueTimeButton == null) {
-            Toast.makeText(this, "Error: Unable to create dialog", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Set up spinners
+        //Set up priority and status spinners
         setupSpinners(prioritySpinner, statusSpinner);
 
-        // Variables to store date and time
+        //Variables to store date and time
         final Calendar calendar = Calendar.getInstance();
         final Date[] startDate = {null};
         final Date[] dueDate = {null};
         final Date[] dueTime = {null};
 
-        // Set up date and time pickers
+        //Allows user to use calendars and clocks to input timestamps
         setupDateTimePickers(startDateButton, dueDateButton, dueTimeButton, calendar, startDate, dueDate, dueTime);
 
         builder.setView(viewInflated);
 
-        builder.setPositiveButton("Create", null); // We'll set the listener later
+        builder.setPositiveButton("Create", null);
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         AlertDialog dialog = builder.create();
 
         dialog.setOnShowListener(dialogInterface -> {
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            positiveButton.setEnabled(false); // Initially disable the button
+            positiveButton.setEnabled(false);
 
+            //User will not be able to add new task if assignment is blank
             assignmentInput.addTextChangedListener(new TextWatcher() {
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -193,6 +165,7 @@ public class Tasks extends AppCompatActivity {
         dialog.show();
     }
 
+    //arrays for spinners in res>values>arrays
     private void setupSpinners(Spinner prioritySpinner, Spinner statusSpinner) {
         ArrayAdapter<CharSequence> priorityAdapter = ArrayAdapter.createFromResource(this,
                 R.array.priority_array, android.R.layout.simple_spinner_item);
@@ -205,6 +178,7 @@ public class Tasks extends AppCompatActivity {
         statusSpinner.setAdapter(statusAdapter);
     }
 
+    //Adds calendar selection for user and ensures correct data format is submitted
     private void setupDateTimePickers(Button startDateButton, Button dueDateButton, Button dueTimeButton,
                                       Calendar calendar, Date[] startDate, Date[] dueDate, Date[] dueTime) {
         DatePickerDialog.OnDateSetListener startDateListener = (view, year, month, day) -> {
@@ -223,6 +197,7 @@ public class Tasks extends AppCompatActivity {
             dueDateButton.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(dueDate[0]));
         };
 
+        //Adds clock feature for user and ensures correct data format is submitted
         TimePickerDialog.OnTimeSetListener dueTimeListener = (view, hourOfDay, minute) -> {
             calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
             calendar.set(Calendar.MINUTE, minute);
@@ -240,6 +215,7 @@ public class Tasks extends AppCompatActivity {
                 calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show());
     }
 
+    //fetches tasks from local database
     private List<Projects.Project> getLocalProjects() {
         if (Firebase.localProjects == null || Firebase.localProjects.isEmpty()) {
             fetchProjects();
@@ -247,6 +223,7 @@ public class Tasks extends AppCompatActivity {
         return Firebase.localProjects;
     }
 
+    //collects subjects from local database
     private List<Subjects.Subject> getActiveSubjects() {
         if (Firebase.localSubjects == null || Firebase.localSubjects.isEmpty()) {
             fetchActiveSubjects();
@@ -254,14 +231,11 @@ public class Tasks extends AppCompatActivity {
         return Firebase.localSubjects;
     }
 
+    //fetches all projects from the Firebase and adds to local database
     private void fetchProjects() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
         firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
             @Override
-            public void onSuccess(List<Projects.Project> projects) {
-                // Projects are now in Firebase.localProjects
-            }
-
+            public void onSuccess(List<Projects.Project> projects) {}
             @Override
             public void onFailure(String errorMessage) {
                 Log.e("ProjectFetch", "Failed to fetch projects: " + errorMessage);
@@ -269,13 +243,11 @@ public class Tasks extends AppCompatActivity {
         });
     }
 
+    //Gathers subjects from Firebase and adds them to local database
     private void fetchActiveSubjects() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
         firebase.fetchAllSubjectsForCurrentUser(new Firebase.OnAllSubjectsFetchedListener() {
             @Override
             public void onSuccess(List<Subjects.Subject> subjects) {
-                // Subjects are now in Firebase.localSubjects
-                // No need to update UI here, as this is just fetching data
             }
 
             @Override
@@ -287,12 +259,12 @@ public class Tasks extends AppCompatActivity {
     }
 
 
+    //MOVE TO FIREBASE.JAVA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     public void createNewTask(String taskName, String taskDescription, String taskProject,
                               String taskSubject, String taskPriority, String taskStatus,
                               Date startDate, Date dueDate, Date dueTime,
                               List<Projects.Project> localProjects, List<Subjects.Subject> activeSubjects,
                               OnTaskCreatedListener listener) {
-        // Check if taskName is blank
         if (taskName == null || taskName.trim().isEmpty()) {
             listener.onFailure("Task name cannot be blank");
             return;
@@ -335,8 +307,6 @@ public class Tasks extends AppCompatActivity {
                         int minutes = calendar.get(Calendar.MINUTE);
                         newTask.put("taskDueTime", new Timestamp(hours, minutes));
                     }
-
-                    // Add the new task to Firestore
                     db.collection("users").document(userId).collection("tasks")
                             .add(newTask)
                             .addOnSuccessListener(documentReference -> {
@@ -367,26 +337,20 @@ public class Tasks extends AppCompatActivity {
             }
         });
     }
-
-
-
-    public interface OnTasksUpdatedListener extends OnTaskCreatedListener {
-        void onTasksUpdated(List<Tasks.Task> tasks);
-    }
-
-
     public interface OnTaskCreatedListener {
         void onSuccess();
-        void onFailure(String errorMessage);
-    }
+        void onFailure(String errorMessage);}
+    public interface OnTasksUpdatedListener extends OnTaskCreatedListener {
+        void onTasksUpdated(List<Tasks.Task> tasks);}
 
+    //data checks
     public interface OnSubjectAndProjectEnsuredListener {
         void onReferencesReady(DocumentReference subjectRef, DocumentReference projectRef);
-        void onFailure(String errorMessage);
-    }
+        void onFailure(String errorMessage);}
 
 
 
+    //This method is used to update the Tasks Scrollview on Display
     private void updateUI(List<Tasks.Task> tasks) {
         if (tasksContainer == null) {
             Toast.makeText(Tasks.this, "Null container", Toast.LENGTH_SHORT).show();
@@ -402,6 +366,7 @@ public class Tasks extends AppCompatActivity {
             return;
         }
 
+        //adds each task in local database to task_item_blocks in Scrollview
         for (Tasks.Task task : tasks) {
             View taskView = getLayoutInflater().inflate(R.layout.task_item_block, null);
 
@@ -417,7 +382,6 @@ public class Tasks extends AppCompatActivity {
             TextView projectTextView = taskView.findViewById(R.id.taskProjectTextView);
             TextView subjectTextView = taskView.findViewById(R.id.taskSubjectTextView);
 
-            // Fetch project name
             if (task.taskProject != null) {
                 task.taskProject.get().addOnSuccessListener(documentSnapshot -> {
                     String projectName = documentSnapshot.getString("projectName");
@@ -430,7 +394,6 @@ public class Tasks extends AppCompatActivity {
                 projectTextView.setText("No Project");
             }
 
-            // Fetch subject name
             if (task.taskSubject != null) {
                 task.taskSubject.get().addOnSuccessListener(documentSnapshot -> {
                     String subjectName = documentSnapshot.getString("subjectName");
@@ -446,7 +409,6 @@ public class Tasks extends AppCompatActivity {
             TextView statusTextView = taskView.findViewById(R.id.taskStatusTextView);
             statusTextView.setText(task.taskStatus);
 
-            // Set Start Date
             TextView startDateTextView = taskView.findViewById(R.id.startDateTextView);
             if (task.taskStartDate != null) {
                 startDateTextView.setText("Start: " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(task.taskStartDate));
@@ -454,7 +416,6 @@ public class Tasks extends AppCompatActivity {
                 startDateTextView.setText("Start: Not set");
             }
 
-            // Set Due Date
             TextView dueDateTextView = taskView.findViewById(R.id.dueDateTextView);
             if (task.taskDueDate != null) {
                 dueDateTextView.setText("Due: " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(task.taskDueDate));
@@ -462,7 +423,6 @@ public class Tasks extends AppCompatActivity {
                 dueDateTextView.setText("Due: Not set");
             }
 
-            // Set Due Time
             TextView dueTimeTextView = taskView.findViewById(R.id.dueTimeTextView);
             if (task.taskDueTime != null) {
                 dueTimeTextView.setText("Time: " + new SimpleDateFormat("HH:mm", Locale.getDefault()).format(task.taskDueTime));
@@ -480,6 +440,7 @@ public class Tasks extends AppCompatActivity {
         }
     }
 
+    //Allows user to delete existing task and confirms with user before permanantly deleting
     private void deleteTask(Tasks.Task task) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Delete Task");
@@ -490,23 +451,16 @@ public class Tasks extends AppCompatActivity {
                 return;
             }
 
-            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-            if (currentUser == null) {
-                Toast.makeText(this, "No user logged in", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            String userId = currentUser.getUid();
+            String userId = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             db.collection("users").document(userId).collection("tasks").document(task.taskId)
                     .delete()
                     .addOnSuccessListener(aVoid -> {
                         Toast.makeText(Tasks.this, "Task deleted successfully", Toast.LENGTH_SHORT).show();
-                        // Fetch and update the task list after successful deletion
                         fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
                             @Override
                             public void onSuccess(List<Tasks.Task> tasks) {
-                                updateUI(tasks); // Update the UI with the new list of tasks
+                                updateUI(tasks); //updates task display after deletion
                             }
 
                             @Override
@@ -527,12 +481,13 @@ public class Tasks extends AppCompatActivity {
         builder.show();
     }
 
+    //Submenu dialog_edit_task allows user to edit an existing task
     private void showEditTaskDialog(Task task) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Edit Task");
 
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_task, null);
-        // Find views
+
         final EditText assignmentInput = viewInflated.findViewById(R.id.assignmentInput);
         final EditText subjectInput = viewInflated.findViewById(R.id.subjectInput);
         final EditText projectInput = viewInflated.findViewById(R.id.projectInput);
@@ -540,16 +495,14 @@ public class Tasks extends AppCompatActivity {
         final Spinner prioritySpinner = viewInflated.findViewById(R.id.prioritySpinner);
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
 
-        // New views for date and time
         Button startDateButton = viewInflated.findViewById(R.id.startDateButton);
         Button dueDateButton = viewInflated.findViewById(R.id.dueDateButton);
         Button dueTimeButton = viewInflated.findViewById(R.id.dueTimeButton);
 
-        // Pre-fill the fields with current task data
+        //fills editViews with existing data before edit
         assignmentInput.setText(task.taskName);
         descriptionInput.setText(task.taskDescription);
 
-        // Fetch and set subject name
         if (task.taskSubject != null) {
             task.taskSubject.get().addOnSuccessListener(documentSnapshot -> {
                 if (documentSnapshot.exists()) {
@@ -564,7 +517,6 @@ public class Tasks extends AppCompatActivity {
             subjectInput.setText("");
         }
 
-        // Fetch and set project name
         if (task.taskProject != null) {
             task.taskProject.get().addOnSuccessListener(documentSnapshot -> {
                 if (documentSnapshot.exists()) {
@@ -579,7 +531,7 @@ public class Tasks extends AppCompatActivity {
             projectInput.setText("");
         }
 
-        // Set up spinners
+        // Set up priority and status spinners both in res>values>arrays
         ArrayAdapter<CharSequence> priorityAdapter = ArrayAdapter.createFromResource(this,
                 R.array.priority_array, android.R.layout.simple_spinner_item);
         priorityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -592,13 +544,11 @@ public class Tasks extends AppCompatActivity {
         statusSpinner.setAdapter(statusAdapter);
         statusSpinner.setSelection(statusAdapter.getPosition(task.taskStatus));
 
-        // Set up date and time variables
         final Calendar calendar = Calendar.getInstance();
         final Date[] startDate = {task.taskStartDate};
         final Date[] dueDate = {task.taskDueDate};
         final Date[] dueTime = {task.taskDueTime};
 
-        // Set button texts with current dates and times if available
         if (startDate[0] != null) {
             startDateButton.setText(new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(startDate[0]));
         }
@@ -609,7 +559,7 @@ public class Tasks extends AppCompatActivity {
             dueTimeButton.setText(new SimpleDateFormat("HH:mm", Locale.getDefault()).format(dueTime[0]));
         }
 
-        // Set up date and time pickers
+        //listeners for date and time features
         startDateButton.setOnClickListener(v -> {
             new DatePickerDialog(Tasks.this, (view, year, month, dayOfMonth) -> {
                 calendar.set(Calendar.YEAR, year);
@@ -645,7 +595,6 @@ public class Tasks extends AppCompatActivity {
             String newSubjectName = subjectInput.getText().toString();
             String newProjectName = projectInput.getText().toString();
 
-            // Find or create subject and project references
             findOrCreateSubjectAndProject(newSubjectName, newProjectName, dueDate[0], dueTime[0], new OnSubjectAndProjectEnsuredListener() {
                 @Override
                 public void onReferencesReady(DocumentReference subjectRef, DocumentReference projectRef) {
@@ -672,20 +621,18 @@ public class Tasks extends AppCompatActivity {
                         updatedTask.put("taskDueTime", new Timestamp(hours, minutes));
                     }
 
-                    // Update the task in Firestore
-                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-                    String userId = currentUser.getUid();
+
+
+                    String userId = Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
                     db.collection("users").document(userId).collection("tasks").document(task.taskId)
                             .update(updatedTask)
                             .addOnSuccessListener(aVoid -> {
                                 Toast.makeText(Tasks.this, "Task updated successfully", Toast.LENGTH_SHORT).show();
-                                // Optionally fetch and update the UI
                                 fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
                                     @Override
                                     public void onSuccess(List<Tasks.Task> tasks) {
                                         updateUI(tasks);
                                     }
-
                                     @Override
                                     public void onFailure(String errorMessage) {
                                         Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
@@ -696,7 +643,6 @@ public class Tasks extends AppCompatActivity {
                                 Toast.makeText(Tasks.this, "Error updating task: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                             });
                 }
-
                 @Override
                 public void onFailure(String errorMessage) {
                     Toast.makeText(Tasks.this, "Error ensuring subject and project: " + errorMessage, Toast.LENGTH_SHORT).show();
@@ -708,6 +654,7 @@ public class Tasks extends AppCompatActivity {
         builder.show();
     }
 
+    //This handles the references to project and subject in Firebase Tasks
     private void findOrCreateSubjectAndProject(String subjectName, String projectName, Date dueDate, Date dueTime,
                                                OnSubjectAndProjectEnsuredListener listener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -718,26 +665,24 @@ public class Tasks extends AppCompatActivity {
         }
         String userId = currentUser.getUid();
 
-        // Handle subject reference
+
         if (subjectName == null || subjectName.trim().isEmpty()) {
-            // Use noneSubject reference
+            //If there is no reference, it defaults to a special position on Firebase called NoneSubjects, generic construct
             DocumentReference noneSubjectRef = db.collection("noneSubject").document("noneSubject");
             handleProjectReference(noneSubjectRef, projectName, dueDate, dueTime, listener);
         } else {
-            // Find or create subject
             db.collection("users").document(userId).collection("subjects")
                     .whereEqualTo("subjectName", subjectName)
                     .get()
                     .addOnSuccessListener(subjectQuerySnapshot -> {
                         DocumentReference subjectRef;
                         if (subjectQuerySnapshot.isEmpty()) {
-                            // Create new subject with defaults
+
                             Map<String, Object> subjectData = new HashMap<>();
                             subjectData.put("subjectName", subjectName);
-                            subjectData.put("subjectColor", "#b00b00");
+                            subjectData.put("subjectColor", "#b00b00"); //defaults to red color
                             subjectData.put("subjectSemester", "Fall");
                             subjectData.put("subjectStatus", "Active");
-
                             subjectRef = db.collection("users").document(userId).collection("subjects").document();
                             subjectRef.set(subjectData)
                                     .addOnSuccessListener(aVoid -> handleProjectReference(subjectRef, projectName, dueDate, dueTime, listener))
@@ -757,6 +702,7 @@ public class Tasks extends AppCompatActivity {
         }
     }
 
+    //handles all Project References in Tasks Firebase page
     private void handleProjectReference(DocumentReference subjectRef, String projectName, Date dueDate, Date dueTime,
                                         OnSubjectAndProjectEnsuredListener listener) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -764,18 +710,16 @@ public class Tasks extends AppCompatActivity {
         String userId = currentUser.getUid();
 
         if (projectName == null || projectName.trim().isEmpty()) {
-            // Use noneProject reference
+            //default constructor on Firebase for Tasks that have no Project reference
             DocumentReference noneProjectRef = db.collection("noneProject").document("noneProject");
             listener.onReferencesReady(subjectRef, noneProjectRef);
         } else {
-            // Find or create project
             db.collection("users").document(userId).collection("projects")
                     .whereEqualTo("projectName", projectName)
                     .get()
                     .addOnSuccessListener(projectQuerySnapshot -> {
                         DocumentReference projectRef;
                         if (projectQuerySnapshot.isEmpty()) {
-                            // Create new project
                             Map<String, Object> projectData = new HashMap<>();
                             projectData.put("projectDescription", "");
                             projectData.put("projectDueDate", dueDate);
@@ -785,7 +729,6 @@ public class Tasks extends AppCompatActivity {
                             ArrayList<DocumentReference> projectSubjects = new ArrayList<>();
                             projectSubjects.add(subjectRef);
                             projectData.put("projectSubjects", projectSubjects);
-
                             projectRef = db.collection("users").document(userId).collection("projects").document();
                             projectRef.set(projectData)
                                     .addOnSuccessListener(aVoid -> listener.onReferencesReady(subjectRef, projectRef))
@@ -807,6 +750,7 @@ public class Tasks extends AppCompatActivity {
 
 
 
+    //call to method in Firebase.java
     private void fetchTasksForCurrentUser(Firebase.OnTasksFetchedListener listener) {
         firebase.fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
             @Override
@@ -829,6 +773,7 @@ public class Tasks extends AppCompatActivity {
     }
 
 
+    //Task object definition
     public static class Task {
         public String taskName; // Task name
         public String taskDescription; // Task description
@@ -844,7 +789,8 @@ public class Tasks extends AppCompatActivity {
         public String taskId;
 
 
-        // No-argument constructor
+        //Empty constructor required for Firebase
+        //Do not delete
         public Task() {}
 
         public Task(String taskName, String taskDescription, String taskPriority,
@@ -860,81 +806,19 @@ public class Tasks extends AppCompatActivity {
 
         }
 
-        // Getters and setters
-
-        public String getTaskName() {
-            return taskName;
+        // Setters
+        public void setTaskProjectString(String taskProjectString) {this.taskProjectString = taskProjectString;}
+        public void setTaskSubjectString(String taskSubjectString) {this.taskSubjectString = taskSubjectString;}
+        public void setTaskId(String id) {
+            this.taskId = id;
         }
 
-        public Date getTaskDueTime() {
-            return taskDueTime;
-        }
-
-        public void setTaskName(String taskName) {
-            this.taskName = taskName;
-        }
-
-        public String getTaskDescription() {
-            return taskDescription;
-        }
-
-        public void setTaskDescription(String taskDescription) {
-            this.taskDescription = taskDescription;
-        }
-
-        public String getTaskPriority() {
-            return taskPriority;
-        }
-
-        public void setTaskPriority(String taskPriority) {
-            this.taskPriority = taskPriority;
-        }
-
-        public String getTaskStatus() {
-            return taskStatus;
-        }
-
-        public void setTaskStatus(String taskStatus) {
-            this.taskStatus = taskStatus;
-        }
-
-        public String getTaskProjectString() {
-            return taskProjectString;
-        }
-
-        public void setTaskProjectString(String taskProjectString) {
-            this.taskProjectString = taskProjectString;
-        }
-
-        // Getters and setters for taskProject
+        //Getters
         public DocumentReference getTaskProject() {
             return taskProject;
         }
-
-        public void setTaskProject(DocumentReference taskProject) {
-            this.taskProject = taskProject;
-        }
-
-        // Getters and setters for taskSubjectString
-        public String getTaskSubjectString() {
-            return taskSubjectString;
-        }
-
-        public void setTaskSubjectString(String taskSubjectString) {
-            this.taskSubjectString = taskSubjectString;
-        }
-
-        // Getters and setters for taskSubject
         public DocumentReference getTaskSubject() {
             return taskSubject;
-        }
-
-        public void setTaskSubject(DocumentReference taskSubject) {
-            this.taskSubject = taskSubject;
-        }
-
-        public void setTaskId(String id) {
-        this.taskId = id;
         }
     }
 

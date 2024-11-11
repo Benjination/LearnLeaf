@@ -9,8 +9,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
@@ -21,13 +19,11 @@ import java.util.Objects;
 
 public class SignUp extends AppCompatActivity {
     private static final String TAG = "SignUp";
-
     private String email;
     private String password;
     private String name;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
-
     private EditText EM, PW, con, NM;
     private Button submit;
     private TextView Login;
@@ -45,21 +41,21 @@ public class SignUp extends AppCompatActivity {
             return;
         }
 
-
-
+        //Opens connection to database
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
+        //If user is already signed in, bypass everything and go to tasks
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null) {
             startActivity(new Intent(SignUp.this, Tasks.class));
             finish();
             return;
         }
-
         setupListeners();
     }
 
+    //Called in onCreate as part of the display process
     private void initializeViews() {
         submit = findViewById(R.id.submit);
         EM = findViewById(R.id.email);
@@ -72,15 +68,19 @@ public class SignUp extends AppCompatActivity {
         Login = findViewById(R.id.login);
     }
 
+
     private void setupListeners() {
+        //Option if user already has an account and wants to jump to Log In page
         Login.setOnClickListener(v -> startActivity(new Intent(SignUp.this, Login.class)));
 
+        //Checks input validation and creates new user
         submit.setOnClickListener(v -> {
             if (!validateInputs()) return;
             createUser();
         });
     }
 
+    //Several checks for email and password to ensure valid input
     private boolean validateInputs() {
         email = EM.getText().toString().trim();
         password = PW.getText().toString();
@@ -106,6 +106,7 @@ public class SignUp extends AppCompatActivity {
         return true;
     }
 
+    //Creates a Firebase authorization for specific user
     private void createUser() {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
@@ -123,6 +124,7 @@ public class SignUp extends AppCompatActivity {
                 });
     }
 
+    //Adds user data to Firebase
     private void updateUserProfile(FirebaseUser user) {
         UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
                 .setDisplayName(name)
@@ -136,6 +138,7 @@ public class SignUp extends AppCompatActivity {
                 });
     }
 
+    //Sets default data to complete all data requirements in User profile
     private void saveAdditionalUserInfo(FirebaseUser user) {
         Map<String, Object> userData = new HashMap<>();
         userData.put("dateFormat", "MM/dd/yyyy");
@@ -151,6 +154,7 @@ public class SignUp extends AppCompatActivity {
                 .addOnFailureListener(e -> Log.w(TAG, "Error saving user data", e));
     }
 
+    //Password must be 6 char long, contain at least one capital and one lowercase letter, Contain a number, and a Special symbol
     private boolean isValidPassword(String password) {
         return password.length() >= 6 &&
                 password.matches(".*[a-zA-Z].*") &&
@@ -158,9 +162,9 @@ public class SignUp extends AppCompatActivity {
                 password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*");
     }
 
+
+    //Uses built in email format validation
     private boolean isValidEmail(String email) {
         return email != null && !email.isEmpty() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
     }
-
-
 }

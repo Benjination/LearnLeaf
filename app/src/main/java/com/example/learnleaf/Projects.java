@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Projects extends AppCompatActivity {
@@ -260,6 +261,85 @@ public class Projects extends AppCompatActivity {
         builder.show();
     }
 
+    //Finds Project on Firebase and prepares new data to replace old data
+    public void updateProject(String oldProjectName, String newProjectName, String projectDescription, String projectStatus, List<String> subjectNames) {
+
+        String userId = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+
+        //Finds Project by Old Name
+        db.collection("users").document(userId).collection("projects")
+                .whereEqualTo("projectName", oldProjectName)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        DocumentSnapshot projectDoc = queryDocumentSnapshots.getDocuments().get(0);
+                        String projectId = projectDoc.getId();
+
+                        //Prepare the updates
+                        Map<String, Object> updates = new HashMap<>();
+                        updates.put("projectName", newProjectName);
+                        updates.put("projectDescription", projectDescription);
+                        updates.put("projectStatus", projectStatus);
+
+                        //Special case to prepare Project.Subjects if they exist
+                        if (!subjectNames.isEmpty()) {
+                            List<DocumentReference> subjectRefs = new ArrayList<>();
+                            for (String subjectName : subjectNames) {
+                                db.collection("users").document(userId).collection("subjects")
+                                        .whereEqualTo("subjectName", subjectName)
+                                        .get()
+                                        .addOnSuccessListener(subjectQuerySnapshot -> {
+                                            if (!subjectQuerySnapshot.isEmpty()) {
+                                                DocumentSnapshot subjectDoc = subjectQuerySnapshot.getDocuments().get(0);
+                                                subjectRefs.add(subjectDoc.getReference());
+
+                                                if (subjectRefs.size() == subjectNames.size()) {
+                                                    updates.put("projectSubjects", subjectRefs);
+                                                    updateProjectInFirestore(userId, projectId, updates);
+                                                }
+                                            }
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Toast.makeText(this, "Error finding subject: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        });
+                            }
+                        } else {
+                            //New subjects do not exist
+                            updateProjectInFirestore(userId, projectId, updates);
+                        }
+                    } else {
+                        Toast.makeText(this, "Project not found", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error finding project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    //Sends new data to Firebase after edit
+    private void updateProjectInFirestore(String userId, String projectId, Map<String, Object> updates) {
+        db.collection("users").document(userId).collection("projects").document(projectId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Project updated successfully", Toast.LENGTH_SHORT).show();
+                    //updates local database
+                    firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
+                        @Override
+                        public void onSuccess(List<Projects.Project> projects) {
+                            updateUI(projects); //Call to display updated project list
+                        }
+
+                        @Override
+                        public void onFailure(String errorMessage) {
+                            Toast.makeText(Projects.this, "Failed to refresh projects: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error updating project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+    }
+
     //Calls method in Firebase and Toasts to your health
     private void deleteProject(String projectName, View blockView) {
         firebase.deleteProject(projectName, new Firebase.OnProjectDeletedListener() {
@@ -287,96 +367,7 @@ public class Projects extends AppCompatActivity {
                 .show();
     }
 
-
-    public void updateProject(String oldProjectName, String newProjectName, String projectDescription, String projectStatus, List<String> subjectNames) {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(this, "User not signed in", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String userId = currentUser.getUid();
-
-        // Query for the project using the old project name
-        db.collection("users").document(userId).collection("projects")
-                .whereEqualTo("projectName", oldProjectName)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        // Get the first (and should be only) matching document
-                        DocumentSnapshot projectDoc = queryDocumentSnapshots.getDocuments().get(0);
-                        String projectId = projectDoc.getId();
-
-                        // Prepare the updates
-                        Map<String, Object> updates = new HashMap<>();
-                        updates.put("projectName", newProjectName);
-                        updates.put("projectDescription", projectDescription);
-                        updates.put("projectStatus", projectStatus);
-
-                        // Handle subject references
-                        if (!subjectNames.isEmpty()) {
-                            List<DocumentReference> subjectRefs = new ArrayList<>();
-                            for (String subjectName : subjectNames) {
-                                // Query to find the subject document by name
-                                db.collection("users").document(userId).collection("subjects")
-                                        .whereEqualTo("subjectName", subjectName)
-                                        .get()
-                                        .addOnSuccessListener(subjectQuerySnapshot -> {
-                                            if (!subjectQuerySnapshot.isEmpty()) {
-                                                DocumentSnapshot subjectDoc = subjectQuerySnapshot.getDocuments().get(0);
-                                                subjectRefs.add(subjectDoc.getReference());
-
-                                                // If this is the last subject, update the project
-                                                if (subjectRefs.size() == subjectNames.size()) {
-                                                    updates.put("projectSubjects", subjectRefs);
-                                                    updateProjectInFirestore(userId, projectId, updates);
-                                                }
-                                            }
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Toast.makeText(this, "Error finding subject: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                        });
-                            }
-                        } else {
-                            // If no subjects, update project immediately
-                            updateProjectInFirestore(userId, projectId, updates);
-                        }
-                    } else {
-                        Toast.makeText(this, "Project not found", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error finding project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-    }
-
-    private void updateProjectInFirestore(String userId, String projectId, Map<String, Object> updates) {
-        db.collection("users").document(userId).collection("projects").document(projectId)
-                .update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(this, "Project updated successfully", Toast.LENGTH_SHORT).show();
-                    // Refresh your UI or project list here
-                    firebase.fetchProjectsForCurrentUser(new Firebase.OnProjectsFetchedListener() {
-                        @Override
-                        public void onSuccess(List<Projects.Project> projects) {
-                            // Update your UI with the new list of projects
-                            updateUI(projects);
-                        }
-
-                        @Override
-                        public void onFailure(String errorMessage) {
-                            Toast.makeText(Projects.this, "Failed to refresh projects: " + errorMessage, Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Error updating project: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-    }
-
-
-
-
+    //passes most recent collection of projects to item_blocks for Scrollview
     private void updateUI(List<Project> projects) {
         if (projectsContainer == null) {
             Toast.makeText(Projects.this, "Null container", Toast.LENGTH_SHORT).show();
@@ -407,18 +398,19 @@ public class Projects extends AppCompatActivity {
             ImageButton editButton = blockView.findViewById(R.id.editButton);
             ImageButton deleteButton = blockView.findViewById(R.id.deleteButton);
 
-            // Set project name and status
             nameTextView.setText(project.getProjectName());
             statusTextView.setText("Status: " + project.getProjectStatus());
 
             Date dueDate = project.getProjectDueDate();
             Date dueTime = project.getProjectDueTime();
 
+            //opens dialog_edit_projects
             editButton.setOnClickListener(v -> {
                 Log.d("EditButton", "Edit button clicked");
                 showEditProjectDialog(project);
             });
 
+            //deletes project associated with item_block that contains a project
             deleteButton.setOnClickListener(v -> {
                 Log.d("DeleteButton", "Delete button clicked");
                 showDeleteConfirmationDialog(project, blockView);
@@ -436,12 +428,13 @@ public class Projects extends AppCompatActivity {
                 dueTimeTextView.setText("Time: Not set");
             }
 
-            // Fetch subject names based on DocumentReferences
+            //Special case for subjects referenced in projects
             List<DocumentReference> subjectRefs = project.getProjectSubjects();
 
             if (subjectRefs != null && !subjectRefs.isEmpty()) {
                 List<String> subjectNames = new ArrayList<>();
                 Task<Void> fetchSubjectsTask = null;
+                //SDK constraint version 34+ requirement
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
                     fetchSubjectsTask = Tasks.whenAllComplete(
                             subjectRefs.stream()
@@ -453,19 +446,18 @@ public class Projects extends AppCompatActivity {
                                                 subjectNames.add(subjectName);
                                             }
                                         }
-                                        return null; // Return null since we don't need a result
+                                        return null;
                                     }))
                                     .collect(Collectors.toList())
                     ).continueWith(task -> {
-                        // Now join the subject names into a string
                         String subjectsString = String.join(", ", subjectNames);
                         extraTextView.setText("Subjects: " + subjectsString);
 
-                        return null; // Return null since we don't need a result
+                        return null;
                     });
                 }
 
-                // Update UI after fetching all subjects
+                //Updates UI after fetching all subjects
                 fetchSubjectsTask.addOnSuccessListener(aVoid -> {
                     String contentDescription = String.format("Project: %s, Status: %s, Subjects: %s, Due Date: %s, Due Time: %s",
                             project.getProjectName(), project.getProjectStatus(), String.join(", ", subjectNames),
@@ -473,24 +465,24 @@ public class Projects extends AppCompatActivity {
                             dueTime != null ? timeFormat.format(dueTime) : "Not set");
                     cardView.setContentDescription(contentDescription);
 
-                    // Add the block view to the container after setting everything
+                    //adds block to Scrollview
                     projectsContainer.addView(blockView);
                 });
 
-                // Handle failure to fetch subjects
                 fetchSubjectsTask.addOnFailureListener(e -> {
                     extraTextView.setText("Subjects: Error fetching subjects");
-                    projectsContainer.addView(blockView); // Add view even if there's an error
+                    projectsContainer.addView(blockView);
                 });
 
             } else {
                 extraTextView.setText("Subjects: None");
-                projectsContainer.addView(blockView); // Add view immediately if no subjects
+                projectsContainer.addView(blockView);
             }
         }
     }
 
 
+    //Object definition for Project
     public static class Project {
         private String projectId;
         private String projectName;
@@ -500,15 +492,10 @@ public class Projects extends AppCompatActivity {
         private Date projectDueDate;
         private Date projectDueTime;
 
-        // No-argument constructor
-        public Project() {
-            this.projectSubjects = new ArrayList<>();
-            this.projectDescription = "";
-            this.projectName = "";
-            this.projectStatus = "Not Started";
-        }
+        //No attribute constructor Required for Firebase
+        //Do not Delete
+        public Project() {}
 
-        // Constructor with parameters
         public Project(String projectName, String projectDescription, String projectStatus,
                        List<DocumentReference> projectSubjects, Date projectDueDate, Date projectDueTime) {
             this.projectName = projectName;
@@ -519,61 +506,29 @@ public class Projects extends AppCompatActivity {
             this.projectDueTime = projectDueTime;
         }
 
-        // Getters and Setters
-        public String getProjectId() {
-            return projectId;
-        }
-
+        //Setters
         public void setProjectId(String projectId) {
             this.projectId = projectId;
         }
 
+        //Getters
         public String getProjectName() {
             return projectName;
         }
-
-        public void setProjectName(String projectName) {
-            this.projectName = projectName;
-        }
-
         public String getProjectDescription() {
             return projectDescription;
         }
-
-        public void setProjectDescription(String projectDescription) {
-            this.projectDescription = projectDescription;
-        }
-
         public String getProjectStatus() {
             return projectStatus;
         }
-
-        public void setProjectStatus(String projectStatus) {
-            this.projectStatus = projectStatus;
-        }
-
         public List<DocumentReference> getProjectSubjects() {
             return projectSubjects;
         }
-
-        public void setProjectSubjects(List<DocumentReference> subjects) {
-            this.projectSubjects = subjects;
-        }
-
         public Date getProjectDueDate() {
             return projectDueDate;
         }
-
-        public void setProjectDueDate(Date projectDueDate) {
-            this.projectDueDate = projectDueDate;
-        }
-
         public Date getProjectDueTime() {
             return projectDueTime;
-        }
-
-        public void setProjectDueTime(Date projectDueTime) {
-            this.projectDueTime = projectDueTime;
         }
     }
 }
