@@ -134,9 +134,9 @@ public class Tasks extends AppCompatActivity {
                 List<Projects.Project> localProjects = getLocalProjects();
                 List<Subjects.Subject> activeSubjects = getActiveSubjects();
 
-                createNewTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
+                firebase.createNewTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
                         startDate[0], dueDate[0], dueTime[0], localProjects, activeSubjects,
-                        new OnTaskCreatedListener() {
+                        new Firebase.OnTaskCreatedListener() {
                             @Override
                             public void onSuccess() {
                                 Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
@@ -258,90 +258,6 @@ public class Tasks extends AppCompatActivity {
         });
     }
 
-
-    //MOVE TO FIREBASE.JAVA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    public void createNewTask(String taskName, String taskDescription, String taskProject,
-                              String taskSubject, String taskPriority, String taskStatus,
-                              Date startDate, Date dueDate, Date dueTime,
-                              List<Projects.Project> localProjects, List<Subjects.Subject> activeSubjects,
-                              OnTaskCreatedListener listener) {
-        if (taskName == null || taskName.trim().isEmpty()) {
-            listener.onFailure("Task name cannot be blank");
-            return;
-        }
-
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser == null) {
-            listener.onFailure("No user logged in");
-            return;
-        }
-
-        String userId = currentUser.getUid();
-
-        findOrCreateSubjectAndProject(taskSubject, taskProject, dueDate, dueTime, new OnSubjectAndProjectEnsuredListener() {
-            @Override
-            public void onReferencesReady(DocumentReference subjectRef, DocumentReference projectRef) {
-                // Ensure this block is only executed once
-                if (subjectRef != null && projectRef != null) {
-                    Map<String, Object> newTask = new HashMap<>();
-                    newTask.put("taskDescription", taskDescription);
-                    newTask.put("taskDueDate", dueDate);
-                    newTask.put("taskDueTime", dueTime);
-                    newTask.put("taskName", taskName.trim()); // Trim the task name
-                    newTask.put("taskPriority", taskPriority);
-                    newTask.put("taskProject", projectRef);
-                    newTask.put("taskStartDate", startDate);
-                    newTask.put("taskStatus", taskStatus);
-                    newTask.put("taskSubject", subjectRef);
-
-                    if (startDate != null) {
-                        newTask.put("taskStartDate", startDate);
-                    }
-                    if (dueDate != null) {
-                        newTask.put("taskDueDate", dueDate);
-                    }
-                    if (dueTime != null) {
-                        Calendar calendar = Calendar.getInstance();
-                        calendar.setTime(dueTime);
-                        int hours = calendar.get(Calendar.HOUR_OF_DAY);
-                        int minutes = calendar.get(Calendar.MINUTE);
-                        newTask.put("taskDueTime", new Timestamp(hours, minutes));
-                    }
-                    db.collection("users").document(userId).collection("tasks")
-                            .add(newTask)
-                            .addOnSuccessListener(documentReference -> {
-                                listener.onSuccess();
-                                fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
-                                    @Override
-                                    public void onSuccess(List<Tasks.Task> tasks) {
-                                        if (listener instanceof OnTasksUpdatedListener) {
-                                            ((OnTasksUpdatedListener) listener).onTasksUpdated(tasks);
-                                        }
-                                    }
-
-                                    @Override
-                                    public void onFailure(String errorMessage) {
-                                        Log.e("TaskFetch", "Failed to fetch tasks after creation: " + errorMessage);
-                                    }
-                                });
-                            })
-                            .addOnFailureListener(e -> listener.onFailure("Error creating task: " + e.getMessage()));
-                } else {
-                    listener.onFailure("Subject or Project references are invalid.");
-                }
-            }
-
-            @Override
-            public void onFailure(String errorMessage) {
-                listener.onFailure("Error ensuring subject and project: " + errorMessage);
-            }
-        });
-    }
-    public interface OnTaskCreatedListener {
-        void onSuccess();
-        void onFailure(String errorMessage);}
-    public interface OnTasksUpdatedListener extends OnTaskCreatedListener {
-        void onTasksUpdated(List<Tasks.Task> tasks);}
 
     //data checks
     public interface OnSubjectAndProjectEnsuredListener {
@@ -595,7 +511,7 @@ public class Tasks extends AppCompatActivity {
             String newSubjectName = subjectInput.getText().toString();
             String newProjectName = projectInput.getText().toString();
 
-            findOrCreateSubjectAndProject(newSubjectName, newProjectName, dueDate[0], dueTime[0], new OnSubjectAndProjectEnsuredListener() {
+            firebase.findOrCreateSubjectAndProject(newSubjectName, newProjectName, dueDate[0], dueTime[0], new OnSubjectAndProjectEnsuredListener() {
                 @Override
                 public void onReferencesReady(DocumentReference subjectRef, DocumentReference projectRef) {
                     // Prepare the updated task data
@@ -654,99 +570,9 @@ public class Tasks extends AppCompatActivity {
         builder.show();
     }
 
-    //This handles the references to project and subject in Firebase Tasks
-    private void findOrCreateSubjectAndProject(String subjectName, String projectName, Date dueDate, Date dueTime,
-                                               OnSubjectAndProjectEnsuredListener listener) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            listener.onFailure("User not signed in");
-            return;
-        }
-        String userId = currentUser.getUid();
 
 
-        if (subjectName == null || subjectName.trim().isEmpty()) {
-            //If there is no reference, it defaults to a special position on Firebase called NoneSubjects, generic construct
-            DocumentReference noneSubjectRef = db.collection("noneSubject").document("noneSubject");
-            handleProjectReference(noneSubjectRef, projectName, dueDate, dueTime, listener);
-        } else {
-            db.collection("users").document(userId).collection("subjects")
-                    .whereEqualTo("subjectName", subjectName)
-                    .get()
-                    .addOnSuccessListener(subjectQuerySnapshot -> {
-                        DocumentReference subjectRef;
-                        if (subjectQuerySnapshot.isEmpty()) {
 
-                            Map<String, Object> subjectData = new HashMap<>();
-                            subjectData.put("subjectName", subjectName);
-                            subjectData.put("subjectColor", "#b00b00"); //defaults to red color
-                            subjectData.put("subjectSemester", "Fall");
-                            subjectData.put("subjectStatus", "Active");
-                            subjectRef = db.collection("users").document(userId).collection("subjects").document();
-                            subjectRef.set(subjectData)
-                                    .addOnSuccessListener(aVoid -> handleProjectReference(subjectRef, projectName, dueDate, dueTime, listener))
-                                    .addOnFailureListener(e -> {
-                                        Log.e("CreateTask", "Error creating subject", e);
-                                        listener.onFailure("Error creating subject: " + e.getMessage());
-                                    });
-                        } else {
-                            subjectRef = subjectQuerySnapshot.getDocuments().get(0).getReference();
-                            handleProjectReference(subjectRef, projectName, dueDate, dueTime, listener);
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e("CreateTask", "Error finding/creating subject", e);
-                        listener.onFailure("Error finding/creating subject: " + e.getMessage());
-                    });
-        }
-    }
-
-    //handles all Project References in Tasks Firebase page
-    private void handleProjectReference(DocumentReference subjectRef, String projectName, Date dueDate, Date dueTime,
-                                        OnSubjectAndProjectEnsuredListener listener) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        String userId = currentUser.getUid();
-
-        if (projectName == null || projectName.trim().isEmpty()) {
-            //default constructor on Firebase for Tasks that have no Project reference
-            DocumentReference noneProjectRef = db.collection("noneProject").document("noneProject");
-            listener.onReferencesReady(subjectRef, noneProjectRef);
-        } else {
-            db.collection("users").document(userId).collection("projects")
-                    .whereEqualTo("projectName", projectName)
-                    .get()
-                    .addOnSuccessListener(projectQuerySnapshot -> {
-                        DocumentReference projectRef;
-                        if (projectQuerySnapshot.isEmpty()) {
-                            Map<String, Object> projectData = new HashMap<>();
-                            projectData.put("projectDescription", "");
-                            projectData.put("projectDueDate", dueDate);
-                            projectData.put("projectDueTime", dueTime);
-                            projectData.put("projectName", projectName);
-                            projectData.put("projectStatus", "Not Started");
-                            ArrayList<DocumentReference> projectSubjects = new ArrayList<>();
-                            projectSubjects.add(subjectRef);
-                            projectData.put("projectSubjects", projectSubjects);
-                            projectRef = db.collection("users").document(userId).collection("projects").document();
-                            projectRef.set(projectData)
-                                    .addOnSuccessListener(aVoid -> listener.onReferencesReady(subjectRef, projectRef))
-                                    .addOnFailureListener(e -> {
-                                        Log.e("CreateTask", "Error creating project", e);
-                                        listener.onFailure("Error creating project: " + e.getMessage());
-                                    });
-                        } else {
-                            projectRef = projectQuerySnapshot.getDocuments().get(0).getReference();
-                            listener.onReferencesReady(subjectRef, projectRef);
-                        }
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e("CreateTask", "Error finding/creating project", e);
-                        listener.onFailure("Error finding/creating project: " + e.getMessage());
-                    });
-        }
-    }
 
 
 
