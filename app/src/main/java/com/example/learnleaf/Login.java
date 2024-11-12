@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.text.InputType;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -12,7 +13,7 @@ import kotlinx.coroutines.scheduling.Task;
 
 public class Login extends AppCompatActivity {
 
-    Button back;
+    TextView back;
     Button submit;
 
     @Override

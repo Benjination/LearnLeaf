@@ -7,4 +7,12 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="Opal">#B6CDC8</color>
+    <color name="MineralGreen">#355147</color>
+    <color name="Leather">#9F6C5B</color>
+    <color name="Hemp">#907474</color>
+    <color name="MistyBlue">#5B8E9F</color>
+    <color name="Orchid">#8E5B9F</color>
+    <color name="Scarlet">#F3161E</color>
 </resources>
