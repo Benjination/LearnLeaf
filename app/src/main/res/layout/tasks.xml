@@ -16,6 +16,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/imageView" />
 
+    <Button
+        android:id="@+id/filter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="36dp"
+        android:layout_marginBottom="32dp"
+        android:text="Filter"
+        android:textColor="@color/MineralGreen"
+        app:backgroundTint="@color/Opal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/addNewTask"
+        app:layout_constraintHorizontal_bias="0.012"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="389dp"
@@ -29,15 +43,15 @@
 
     <ScrollView
         android:id="@+id/scrollView2"
-        android:layout_width="374dp"
-        android:layout_height="403dp"
+        android:layout_width="375dp"
+        android:layout_height="410dp"
         android:layout_marginTop="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.486"
+        app:layout_constraintHorizontal_bias="0.487"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/navigation_fragment"
-        app:layout_constraintVertical_bias="0.36">
+        app:layout_constraintVertical_bias="0.122">
 
         <LinearLayout
             android:id="@+id/tasksContainer"
@@ -63,6 +77,7 @@
         android:clickable="true"
         android:focusable="true"
         android:onClick="onAddNewTaskClick"/>
+
 
 
 

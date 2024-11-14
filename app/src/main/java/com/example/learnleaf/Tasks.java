@@ -2,6 +2,7 @@ package com.example.learnleaf;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -20,10 +21,14 @@ import android.widget.Toast;
 import com.google.firebase.firestore.DocumentReference;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.compose.material.icons.sharp.EditCalendarKt;
+
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -33,12 +38,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class Tasks extends AppCompatActivity {
     private LinearLayout tasksContainer;
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private Firebase firebase;
+    private List<Task> filteredTasks;
+    private List<Task> allTasks;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,25 +59,179 @@ public class Tasks extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
         firebase = new Firebase(this);
+        tasksContainer = findViewById(R.id.tasksContainer);
+        Button filter = findViewById(R.id.filter);
+
+        filter.setOnClickListener(v -> {
+            showSearchByDialog();
+        });
 
         ImageView addNew = findViewById(R.id.addNewTask);
+        allTasks = new ArrayList<>();
+        filteredTasks = new ArrayList<>();
 
-        //Calls method in firebase to update local database
-        fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
+//        //Calls method in firebase to update local database
+//        fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
+//            @Override
+//            public void onSuccess(List<Tasks.Task> tasks) {
+//                updateUI(tasks);
+//            }
+//
+//            @Override
+//            public void onFailure(String errorMessage) {
+//                Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
+//                Log.e("FetchTasks", "Error fetching tasks: " + errorMessage);
+//            }
+//        });
+
+        addNew.setOnClickListener(v -> showCreateTaskDialog());
+        loadTasks();
+    }
+
+    private void loadTasks() {
+        firebase.fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
             @Override
-            public void onSuccess(List<Tasks.Task> tasks) {
-                updateUI(tasks);
+            public void onSuccess(List<Task> tasks) {
+                allTasks.clear();
+                allTasks.addAll(tasks);
+                filteredTasks.clear();
+                filteredTasks.addAll(tasks);
+                runOnUiThread(() -> updateUI(filteredTasks));
             }
 
             @Override
             public void onFailure(String errorMessage) {
-                Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
-                Log.e("FetchTasks", "Error fetching tasks: " + errorMessage);
+                runOnUiThread(() -> {
+                    Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
+                    Log.e("FetchTasks", "Error fetching tasks: " + errorMessage);
+                });
             }
         });
-        //addNew button launches dialog_create_task.xml
-        addNew.setOnClickListener(v -> showCreateTaskDialog());
     }
+
+    private void showSearchByDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Filter Tasks");
+
+        View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_filter_task, null);
+        Spinner searchSpinner = viewInflated.findViewById(R.id.searchSpinner);
+        EditText searchInput = viewInflated.findViewById(R.id.search);
+        Button searchButton = viewInflated.findViewById(R.id.submit);
+        Button clearFilters = viewInflated.findViewById(R.id.clear);
+
+        ArrayAdapter<CharSequence> searchAdapter = ArrayAdapter.createFromResource(this,
+                R.array.search_array, android.R.layout.simple_spinner_item);
+        searchAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        searchSpinner.setAdapter(searchAdapter);
+
+        builder.setView(viewInflated);
+
+        AlertDialog dialog = builder.create();
+
+        searchButton.setOnClickListener(v -> {
+            String selectedOption = searchSpinner.getSelectedItem().toString();
+            String searchText = searchInput.getText().toString().trim().toLowerCase();
+
+            if (selectedOption.equals("Not Selected")) {
+                Toast.makeText(Tasks.this, "You must first select a search option", Toast.LENGTH_SHORT).show();
+            } else if (searchText.isEmpty()) {
+                Toast.makeText(Tasks.this, "Please enter a search term", Toast.LENGTH_SHORT).show();
+            } else {
+                switch (selectedOption) {
+                    case "Subject":
+                        searchTaskSubjects(searchText);
+                        break;
+                    case "Project":
+                        searchTaskProjects(searchText);
+                        break;
+                    case "Priority":
+                        searchPriority(searchText);
+                        break;
+                    case "Status":
+                        searchStatus(searchText);
+                        break;
+                    default:
+                        Toast.makeText(Tasks.this, "Invalid search option", Toast.LENGTH_SHORT).show();
+                }
+                dialog.dismiss();
+            }
+        });
+
+        clearFilters.setOnClickListener(v -> {
+            filteredTasks.clear();
+            filteredTasks.addAll(allTasks);
+            updateUI(filteredTasks);
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void searchTaskSubjects(String searchText) {
+        filteredTasks.clear();
+        AtomicInteger processedTasks = new AtomicInteger(0);
+        for (Task task : allTasks) {
+            task.getTaskSubject().get().addOnSuccessListener(documentSnapshot -> {
+                if (documentSnapshot.exists()) {
+                    String subjectName = documentSnapshot.getString("name");
+                    if (subjectName != null && subjectName.toLowerCase().contains(searchText)) {
+                        filteredTasks.add(task);
+                    }
+                }
+                if (processedTasks.incrementAndGet() == allTasks.size()) {
+                    runOnUiThread(() -> updateUI(filteredTasks));
+                }
+            });
+        }
+    }
+
+    private void searchTaskProjects(String searchText) {
+        filteredTasks.clear();
+        AtomicInteger processedTasks = new AtomicInteger(0);
+        for (Task task : allTasks) {
+            if (task.getTaskProject() != null) {
+                task.getTaskProject().get().addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String projectName = documentSnapshot.getString("name");
+                        if (projectName != null && projectName.toLowerCase().contains(searchText)) {
+                            filteredTasks.add(task);
+                        }
+                    }
+                    if (processedTasks.incrementAndGet() == allTasks.size()) {
+                        runOnUiThread(() -> updateUI(filteredTasks));
+                    }
+                });
+            } else {
+                if (processedTasks.incrementAndGet() == allTasks.size()) {
+                    runOnUiThread(() -> updateUI(filteredTasks));
+                }
+            }
+        }
+    }
+
+    private void searchPriority(String searchText) {
+        filteredTasks.clear();
+        for (Task task : allTasks) {
+            if (task.getTaskPriority().toLowerCase().contains(searchText)) {
+                filteredTasks.add(task);
+            }
+        }
+        updateUI(filteredTasks);
+    }
+
+    private void searchStatus(String searchText) {
+        filteredTasks.clear();
+        for (Task task : allTasks) {
+            if (task.getTaskStatus().toLowerCase().contains(searchText)) {
+                filteredTasks.add(task);
+            }
+        }
+        updateUI(filteredTasks);
+    }
+
+
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////
 
     //Submenu that allows users to input all data for a new task
     private void showCreateTaskDialog() {
@@ -267,93 +431,94 @@ public class Tasks extends AppCompatActivity {
 
 
     //This method is used to update the Tasks Scrollview on Display
-    private void updateUI(List<Tasks.Task> tasks) {
-        if (tasksContainer == null) {
-            Toast.makeText(Tasks.this, "Null container", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        tasksContainer.removeAllViews();
-
-        if (tasks.isEmpty()) {
-            TextView noTasksText = new TextView(this);
-            noTasksText.setText("No tasks found");
-            tasksContainer.addView(noTasksText);
-            return;
-        }
-
-        //adds each task in local database to task_item_blocks in Scrollview
-        for (Tasks.Task task : tasks) {
-            View taskView = getLayoutInflater().inflate(R.layout.task_item_block, null);
-
-            TextView assignmentTextView = taskView.findViewById(R.id.taskNameTextView);
-            assignmentTextView.setText(task.taskName);
-
-            TextView descriptionTextView = taskView.findViewById(R.id.taskDescriptionTextView);
-            descriptionTextView.setText(task.taskDescription);
-
-            TextView priorityTextView = taskView.findViewById(R.id.taskPriorityTextView);
-            priorityTextView.setText(task.taskPriority);
-
-            TextView projectTextView = taskView.findViewById(R.id.taskProjectTextView);
-            TextView subjectTextView = taskView.findViewById(R.id.taskSubjectTextView);
-
-            if (task.taskProject != null) {
-                task.taskProject.get().addOnSuccessListener(documentSnapshot -> {
-                    String projectName = documentSnapshot.getString("projectName");
-                    projectTextView.setText(projectName != null ? projectName : "Unknown Project");
-                }).addOnFailureListener(e -> {
-                    projectTextView.setText("Error fetching project");
-                    Log.e("UpdateUI", "Error fetching project", e);
-                });
-            } else {
-                projectTextView.setText("No Project");
+    private void updateUI(List<Task> tasks) {
+        runOnUiThread(() -> {
+            if (tasksContainer == null) {
+                Toast.makeText(Tasks.this, "Null container", Toast.LENGTH_SHORT).show();
+                return;
             }
 
-            if (task.taskSubject != null) {
-                task.taskSubject.get().addOnSuccessListener(documentSnapshot -> {
-                    String subjectName = documentSnapshot.getString("subjectName");
-                    subjectTextView.setText(subjectName != null ? subjectName : "Unknown Subject");
-                }).addOnFailureListener(e -> {
-                    subjectTextView.setText("Error fetching subject");
-                    Log.e("UpdateUI", "Error fetching subject", e);
-                });
-            } else {
-                subjectTextView.setText("No Subject");
+            tasksContainer.removeAllViews();
+
+            if (tasks.isEmpty()) {
+                TextView noTasksText = new TextView(this);
+                noTasksText.setText("No tasks found");
+                tasksContainer.addView(noTasksText);
+                return;
             }
 
-            TextView statusTextView = taskView.findViewById(R.id.taskStatusTextView);
-            statusTextView.setText(task.taskStatus);
+            for (Task task : tasks) {
+                View taskView = getLayoutInflater().inflate(R.layout.task_item_block, null);
 
-            TextView startDateTextView = taskView.findViewById(R.id.startDateTextView);
-            if (task.taskStartDate != null) {
-                startDateTextView.setText("Start: " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(task.taskStartDate));
-            } else {
-                startDateTextView.setText("Start: Not set");
+                TextView assignmentTextView = taskView.findViewById(R.id.taskNameTextView);
+                assignmentTextView.setText(task.taskName);
+
+                TextView descriptionTextView = taskView.findViewById(R.id.taskDescriptionTextView);
+                descriptionTextView.setText(task.taskDescription);
+
+                TextView priorityTextView = taskView.findViewById(R.id.taskPriorityTextView);
+                priorityTextView.setText(task.taskPriority);
+
+                TextView projectTextView = taskView.findViewById(R.id.taskProjectTextView);
+                TextView subjectTextView = taskView.findViewById(R.id.taskSubjectTextView);
+
+                if (task.taskProject != null) {
+                    task.taskProject.get().addOnSuccessListener(documentSnapshot -> {
+                        String projectName = documentSnapshot.getString("projectName");
+                        projectTextView.setText(projectName != null ? projectName : "Unknown Project");
+                    }).addOnFailureListener(e -> {
+                        projectTextView.setText("Error fetching project");
+                        Log.e("UpdateUI", "Error fetching project", e);
+                    });
+                } else {
+                    projectTextView.setText("No Project");
+                }
+
+                if (task.taskSubject != null) {
+                    task.taskSubject.get().addOnSuccessListener(documentSnapshot -> {
+                        String subjectName = documentSnapshot.getString("subjectName");
+                        subjectTextView.setText(subjectName != null ? subjectName : "Unknown Subject");
+                    }).addOnFailureListener(e -> {
+                        subjectTextView.setText("Error fetching subject");
+                        Log.e("UpdateUI", "Error fetching subject", e);
+                    });
+                } else {
+                    subjectTextView.setText("No Subject");
+                }
+
+                TextView statusTextView = taskView.findViewById(R.id.taskStatusTextView);
+                statusTextView.setText(task.taskStatus);
+
+                TextView startDateTextView = taskView.findViewById(R.id.startDateTextView);
+                if (task.taskStartDate != null) {
+                    startDateTextView.setText("Start: " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(task.taskStartDate));
+                } else {
+                    startDateTextView.setText("Start: Not set");
+                }
+
+                TextView dueDateTextView = taskView.findViewById(R.id.dueDateTextView);
+                if (task.taskDueDate != null) {
+                    dueDateTextView.setText("Due: " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(task.taskDueDate));
+                } else {
+                    dueDateTextView.setText("Due: Not set");
+                }
+
+                TextView dueTimeTextView = taskView.findViewById(R.id.dueTimeTextView);
+                if (task.taskDueTime != null) {
+                    dueTimeTextView.setText("Time: " + new SimpleDateFormat("HH:mm", Locale.getDefault()).format(task.taskDueTime));
+                } else {
+                    dueTimeTextView.setText("Time: Not set");
+                }
+
+                ImageButton editButton = taskView.findViewById(R.id.editButton);
+                editButton.setOnClickListener(v -> showEditTaskDialog(task));
+
+                ImageButton deleteButton = taskView.findViewById(R.id.deleteButton);
+                deleteButton.setOnClickListener(v -> deleteTask(task));
+
+                tasksContainer.addView(taskView);
             }
-
-            TextView dueDateTextView = taskView.findViewById(R.id.dueDateTextView);
-            if (task.taskDueDate != null) {
-                dueDateTextView.setText("Due: " + new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(task.taskDueDate));
-            } else {
-                dueDateTextView.setText("Due: Not set");
-            }
-
-            TextView dueTimeTextView = taskView.findViewById(R.id.dueTimeTextView);
-            if (task.taskDueTime != null) {
-                dueTimeTextView.setText("Time: " + new SimpleDateFormat("HH:mm", Locale.getDefault()).format(task.taskDueTime));
-            } else {
-                dueTimeTextView.setText("Time: Not set");
-            }
-
-            ImageButton editButton = taskView.findViewById(R.id.editButton);
-            editButton.setOnClickListener(v -> showEditTaskDialog(task));
-
-            ImageButton deleteButton = taskView.findViewById(R.id.deleteButton);
-            deleteButton.setOnClickListener(v -> deleteTask(task));
-
-            tasksContainer.addView(taskView);
-        }
+        });
     }
 
     //Allows user to delete existing task and confirms with user before permanantly deleting
@@ -643,9 +808,15 @@ public class Tasks extends AppCompatActivity {
         public DocumentReference getTaskProject() {
             return taskProject;
         }
+        public String getTaskProjectString(){return taskProjectString;}
         public DocumentReference getTaskSubject() {
             return taskSubject;
         }
+        public String getTaskSubjectString(){return taskSubjectString;}
+        public String getTaskName(){return taskName;}
+        public String getTaskDescription(){return taskDescription;}
+        public String getTaskPriority() {return taskPriority;}
+        public String getTaskStatus() {return taskStatus;}
     }
 
 }

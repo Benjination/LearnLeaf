@@ -12,4 +12,12 @@
         <item>Completed</item>
     </string-array>
 
+    <string-array name="search_array">
+        <item>Not Selected</item>
+        <item>Project</item>
+        <item>Subject</item>
+        <item>Priority</item>
+        <item>Status</item>
+    </string-array>
+
 </resources>
