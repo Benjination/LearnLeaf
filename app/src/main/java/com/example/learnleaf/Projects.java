@@ -2,6 +2,7 @@ package com.example.learnleaf;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -403,6 +404,14 @@ public class Projects extends AppCompatActivity {
 
             Date dueDate = project.getProjectDueDate();
             Date dueTime = project.getProjectDueTime();
+
+            cardView.setOnClickListener(v -> {
+                String projectName = project.getProjectName();
+                Intent intent = new Intent(Projects.this, com.example.learnleaf.Tasks.class);
+                intent.putExtra("FILTER_PROJECT", projectName);
+                System.out.println(projectName + " Cardview Click");
+                startActivity(intent);
+            });
 
             //opens dialog_edit_projects
             editButton.setOnClickListener(v -> {

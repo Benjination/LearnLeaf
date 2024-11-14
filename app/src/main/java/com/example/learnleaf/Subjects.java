@@ -1,5 +1,6 @@
 package com.example.learnleaf;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
@@ -26,10 +27,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 
 public class Subjects extends AppCompatActivity {
-    private FirebaseFirestore db;
-    private FirebaseAuth mAuth;
-    private static LinearLayout subjectsContainer;
-    private ImageView addnew;
+    private LinearLayout subjectsContainer;
     private Firebase firebase;
 
     @Override
@@ -37,10 +35,10 @@ public class Subjects extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.subjects);
 
-        db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
+        //FirebaseFirestore db = FirebaseFirestore.getInstance();
+        //FirebaseAuth mAuth = FirebaseAuth.getInstance();
         subjectsContainer = findViewById(R.id.subjectsContainer);
-        addnew = findViewById(R.id.addnew);
+        ImageView addnew = findViewById(R.id.addnew);
         firebase = new Firebase(this);
         addnew.setOnClickListener(v -> showCreateSubjectDialog());
         fetchAllSubjectsForCurrentUser();
@@ -262,11 +260,17 @@ public class Subjects extends AppCompatActivity {
             editButton.setOnClickListener(v -> showEditSubjectDialog(subject));
             deleteButton.setOnClickListener(v -> showDeleteConfirmationDialog(subject, blockView));
 
+            cardView.setOnClickListener(v -> {
+                String subjectName = subject.getSubjectName();
+                Intent intent = new Intent(Subjects.this, Tasks.class);
+                intent.putExtra("FILTER_SUBJECT", subjectName);
+                startActivity(intent);
+            });
             subjectsContainer.addView(blockView);
         }
     }
 
-    // Improved parseColor method
+    //Improved parseColor method
     private int parseColor(String colorString) {
         if (colorString == null || colorString.isEmpty()) {
             Log.w("UpdateUI", "Empty or null color string, using default");

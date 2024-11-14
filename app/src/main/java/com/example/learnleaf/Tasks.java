@@ -2,7 +2,6 @@ package com.example.learnleaf;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -21,14 +20,9 @@ import android.widget.Toast;
 import com.google.firebase.firestore.DocumentReference;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.compose.material.icons.sharp.EditCalendarKt;
-
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -38,13 +32,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public class Tasks extends AppCompatActivity {
     private LinearLayout tasksContainer;
     private FirebaseFirestore db;
-    private FirebaseAuth mAuth;
     private Firebase firebase;
     private List<Task> filteredTasks;
     private List<Task> allTasks;
@@ -52,41 +43,36 @@ public class Tasks extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.tasks);
+    super.onCreate(savedInstanceState);
+    setContentView(R.layout.tasks);
 
-        tasksContainer = findViewById(R.id.tasksContainer);
-        db = FirebaseFirestore.getInstance();
-        mAuth = FirebaseAuth.getInstance();
-        firebase = new Firebase(this);
-        tasksContainer = findViewById(R.id.tasksContainer);
-        Button filter = findViewById(R.id.filter);
+    // Initialize common elements
+    tasksContainer = findViewById(R.id.tasksContainer);
+    db = FirebaseFirestore.getInstance();
+        //FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    firebase = new Firebase(this);
+    Button filter = findViewById(R.id.filter);
+    ImageView addNew = findViewById(R.id.addNewTask);
+    allTasks = new ArrayList<>();
+    filteredTasks = new ArrayList<>();
 
-        filter.setOnClickListener(v -> {
-            showSearchByDialog();
-        });
+    // Set up click listeners
+    filter.setOnClickListener(v -> showSearchByDialog());
+    addNew.setOnClickListener(v -> showCreateTaskDialog());
 
-        ImageView addNew = findViewById(R.id.addNewTask);
-        allTasks = new ArrayList<>();
-        filteredTasks = new ArrayList<>();
-
-//        //Calls method in firebase to update local database
-//        fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
-//            @Override
-//            public void onSuccess(List<Tasks.Task> tasks) {
-//                updateUI(tasks);
-//            }
-//
-//            @Override
-//            public void onFailure(String errorMessage) {
-//                Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
-//                Log.e("FetchTasks", "Error fetching tasks: " + errorMessage);
-//            }
-//        });
-
-        addNew.setOnClickListener(v -> showCreateTaskDialog());
+    String filterSubject = getIntent().getStringExtra("FILTER_SUBJECT");
+    String filterProject = getIntent().getStringExtra("FILTER_PROJECT");
+    System.out.println("Filter_project = " + filterProject);
+    if (filterSubject != null) {
+        searchTaskSubjects(filterSubject);
+    }
+    else if (filterProject != null){
+        searchTaskProjects(filterProject);
+        }
+    else {
         loadTasks();
     }
+}
 
     private void loadTasks() {
         firebase.fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
@@ -167,26 +153,68 @@ public class Tasks extends AppCompatActivity {
         dialog.show();
     }
 
-    private void searchTaskSubjects(String searchText) {
-        filteredTasks.clear();
-        for (Task task : allTasks) {
-            String subjectString = task.getTaskSubjectString();
-            if (subjectString != null && subjectString.toLowerCase().contains(searchText.toLowerCase())) {
-                filteredTasks.add(task);
+    public void searchTaskSubjects(String searchText) {
+        System.out.println("Searching for: " + searchText);
+
+        firebase.fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
+            @Override
+            public void onSuccess(List<Tasks.Task> tasks) {
+                allTasks.clear();
+                filteredTasks.clear();
+                allTasks.addAll(tasks);
+
+                for (Tasks.Task task : allTasks) {
+                    String subjectString = task.getTaskSubjectString();
+                    System.out.println("Task subject: " + subjectString);
+
+                    if (subjectString != null && subjectString.toLowerCase().contains(searchText.toLowerCase())) {
+                        filteredTasks.add(task);
+                    }
+                }
+
+                System.out.println("Total tasks: " + allTasks.size());
+                System.out.println("Filtered tasks: " + filteredTasks.size());
+
+                updateUI(filteredTasks);
             }
-        }
-        updateUI(filteredTasks);
+
+            @Override
+            public void onFailure(String errorMessage) {
+                System.out.println("Error loading tasks: " + errorMessage);
+                Toast.makeText(Tasks.this, "Error loading tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    private void searchTaskProjects(String searchText) {
-        filteredTasks.clear();
-        for (Task task : allTasks) {
-            String projectString = task.getTaskProjectString();
-            if (projectString != null && projectString.toLowerCase().contains(searchText.toLowerCase())) {
-                filteredTasks.add(task);
+    public void searchTaskProjects(String searchText) {
+        System.out.println("Searching for projects containing: " + searchText);
+
+        firebase.fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
+            @Override
+            public void onSuccess(List<Tasks.Task> tasks) {
+                allTasks.clear();
+                filteredTasks.clear();
+                allTasks.addAll(tasks);
+
+                for (Tasks.Task task : allTasks) {
+                    String projectString = task.getTaskProjectString();
+                    if (projectString != null && projectString.toLowerCase().contains(searchText.toLowerCase())) {
+                        filteredTasks.add(task);
+                    }
+                }
+
+                System.out.println("Total tasks: " + allTasks.size());
+                System.out.println("Filtered tasks (by project): " + filteredTasks.size());
+
+                updateUI(filteredTasks);
             }
-        }
-        updateUI(filteredTasks);
+
+            @Override
+            public void onFailure(String errorMessage) {
+                System.out.println("Error loading tasks: " + errorMessage);
+                updateUI(new ArrayList<>()); // Update UI with empty list in case of error
+            }
+        });
     }
 
     private void searchPriority(String searchText) {
