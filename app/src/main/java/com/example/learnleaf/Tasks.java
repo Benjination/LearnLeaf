@@ -169,44 +169,24 @@ public class Tasks extends AppCompatActivity {
 
     private void searchTaskSubjects(String searchText) {
         filteredTasks.clear();
-        AtomicInteger processedTasks = new AtomicInteger(0);
         for (Task task : allTasks) {
-            task.getTaskSubject().get().addOnSuccessListener(documentSnapshot -> {
-                if (documentSnapshot.exists()) {
-                    String subjectName = documentSnapshot.getString("name");
-                    if (subjectName != null && subjectName.toLowerCase().contains(searchText)) {
-                        filteredTasks.add(task);
-                    }
-                }
-                if (processedTasks.incrementAndGet() == allTasks.size()) {
-                    runOnUiThread(() -> updateUI(filteredTasks));
-                }
-            });
+            String subjectString = task.getTaskSubjectString();
+            if (subjectString != null && subjectString.toLowerCase().contains(searchText.toLowerCase())) {
+                filteredTasks.add(task);
+            }
         }
+        updateUI(filteredTasks);
     }
 
     private void searchTaskProjects(String searchText) {
         filteredTasks.clear();
-        AtomicInteger processedTasks = new AtomicInteger(0);
         for (Task task : allTasks) {
-            if (task.getTaskProject() != null) {
-                task.getTaskProject().get().addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        String projectName = documentSnapshot.getString("name");
-                        if (projectName != null && projectName.toLowerCase().contains(searchText)) {
-                            filteredTasks.add(task);
-                        }
-                    }
-                    if (processedTasks.incrementAndGet() == allTasks.size()) {
-                        runOnUiThread(() -> updateUI(filteredTasks));
-                    }
-                });
-            } else {
-                if (processedTasks.incrementAndGet() == allTasks.size()) {
-                    runOnUiThread(() -> updateUI(filteredTasks));
-                }
+            String projectString = task.getTaskProjectString();
+            if (projectString != null && projectString.toLowerCase().contains(searchText.toLowerCase())) {
+                filteredTasks.add(task);
             }
         }
+        updateUI(filteredTasks);
     }
 
     private void searchPriority(String searchText) {

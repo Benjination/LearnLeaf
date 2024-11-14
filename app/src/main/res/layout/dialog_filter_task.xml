@@ -3,16 +3,15 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="300dp">
 
     <Spinner
         android:id="@+id/searchSpinner"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:layout_marginTop="184dp"
-        android:layout_marginBottom="12dp"
-        app:layout_constraintBottom_toTopOf="@+id/search"
+        android:layout_marginTop="64dp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -20,15 +19,16 @@
         android:id="@+id/search"
         android:layout_width="match_parent"
         android:layout_height="48dp"
+        android:layout_marginTop="28dp"
         android:background="@color/white"
         android:hint="Search"
-        android:inputType="textPassword"
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         android:textColor="@color/black"
         android:textColorHint="#006064"
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/searchSpinner"
         tools:ignore="Autofill,TextContrastCheck" />
@@ -37,28 +37,28 @@
         android:id="@+id/submit"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
-        android:layout_marginEnd="21dp"
+        android:layout_marginTop="51dp"
+        android:layout_marginEnd="64dp"
         android:text="@string/submit"
         android:textColor="@color/MineralGreen"
         app:backgroundTint="@color/Opal"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/clear"
-        app:layout_constraintTop_toTopOf="@+id/clear" />
+        app:layout_constraintTop_toBottomOf="@+id/search" />
 
     <Button
         android:id="@+id/clear"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="13dp"
-        android:layout_marginBottom="267dp"
+        android:layout_marginStart="68dp"
+        android:layout_marginTop="51dp"
         android:text="Clear"
         android:textColor="@color/MineralGreen"
         app:backgroundTint="@color/Opal"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/submit"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/search" />
+        app:layout_constraintTop_toBottomOf="@+id/search"
+        app:layout_constraintVertical_bias="0.504" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
