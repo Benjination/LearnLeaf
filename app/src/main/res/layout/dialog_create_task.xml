@@ -10,6 +10,12 @@
         android:padding="16dp">
 
         <EditText
+            android:id="@+id/taskNameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Assignment" />
+
+        <EditText
             android:id="@+id/taskSubjectTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -21,11 +27,6 @@
             android:layout_height="wrap_content"
             android:hint="Project" />
 
-        <EditText
-            android:id="@+id/taskNameTextView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Assignment" />
 
         <EditText
             android:id="@+id/taskDescriptionInput"

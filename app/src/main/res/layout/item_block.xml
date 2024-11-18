@@ -5,13 +5,13 @@
     android:id="@+id/itemCardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="#f6f6f6"
     android:layout_margin="8dp"
     app:cardCornerRadius="8dp"
     android:layout_marginTop="8dp"
     android:layout_marginBottom="8dp"
     app:cardElevation="4dp"
-    app:cardMaxElevation="4dp"
+    app:cardBackgroundColor="#f6f6f6"
+    app:cardMaxElevation="0dp"
     app:cardPreventCornerOverlap="true"
     app:cardUseCompatPadding="true">
 
@@ -19,13 +19,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="8dp">
 
         <TextView
             android:id="@+id/itemNameTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/black"
+            android:textColor="@color/black"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -67,20 +67,22 @@
                 android:id="@+id/editButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
+                android:layout_marginEnd="170dp"
                 android:background="?android:attr/selectableItemBackground"
+                app:cardBackgroundColor="#f6f6f6"
                 android:contentDescription="Edit item"
                 android:scaleType="fitCenter"
-                android:src="@drawable/edit" />
+                android:src="@drawable/tinyedit" />
 
             <ImageButton
                 android:id="@+id/deleteButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="148dp"
                 android:background="?android:attr/selectableItemBackground"
-                android:contentDescription="Delete item"
+                android:contentDescription="Garbage item"
                 android:scaleType="fitCenter"
-                android:src="@drawable/tinytrash" />
+                android:src="@drawable/tinytrash"
+                app:cardBackgroundColor="#f6f6f6" />
 
         </LinearLayout>
     </LinearLayout>

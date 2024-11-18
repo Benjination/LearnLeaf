@@ -8,9 +8,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Design.Light.NoActionBar">
-        <activity
-            android:name=".Filter"
-            android:exported="false" />
         <activity android:name=".Tasks" />
         <activity android:name=".Subjects" />
         <activity android:name=".Projects" />

@@ -2,6 +2,9 @@ package com.example.learnleaf;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -20,6 +23,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.PropertyName;
@@ -240,18 +245,19 @@ public class Subjects extends AppCompatActivity {
             Log.d("UpdateUI", "Subject: " + subject.getSubjectName() + ", Color: " + subject.getSubjectColor());
 
             int color = parseColor(subject.getSubjectColor());
-            cardView.setCardBackgroundColor(color);
+            //cardView.setCardBackgroundColor(color);
+            nameTextView.setTextColor(color);
 
-            //Adjusts text color to provide contrast on user selected background color
-            if (isColorDark(color)) {
-                nameTextView.setTextColor(Color.WHITE);
-                statusTextView.setTextColor(Color.WHITE);
-                extraTextView.setTextColor(Color.WHITE);
-            } else {
-                nameTextView.setTextColor(Color.BLACK);
-                statusTextView.setTextColor(Color.BLACK);
-                extraTextView.setTextColor(Color.BLACK);
-            }
+//            //Adjusts text color to provide contrast on user selected background color
+//            if (isColorDark(color)) {
+//                nameTextView.setTextColor(Color.WHITE);
+//                statusTextView.setTextColor(Color.WHITE);
+//                extraTextView.setTextColor(Color.WHITE);
+//            } else {
+//                nameTextView.setTextColor(Color.BLACK);
+//                statusTextView.setTextColor(Color.BLACK);
+//                extraTextView.setTextColor(Color.BLACK);
+//            }
 
             String contentDescription = String.format("Subject: %s, Status: %s, Semester: %s",
                     subject.getSubjectName(), subject.getStatus(), subject.getSemester());
