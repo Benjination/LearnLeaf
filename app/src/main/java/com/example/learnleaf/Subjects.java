@@ -1,5 +1,6 @@
 package com.example.learnleaf;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -14,6 +15,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -40,8 +42,6 @@ public class Subjects extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.subjects);
 
-        //FirebaseFirestore db = FirebaseFirestore.getInstance();
-        //FirebaseAuth mAuth = FirebaseAuth.getInstance();
         subjectsContainer = findViewById(R.id.subjectsContainer);
         ImageView addnew = findViewById(R.id.addnew);
         firebase = new Firebase(this);
@@ -97,24 +97,29 @@ public class Subjects extends AppCompatActivity {
         dialog.show();
     }
 
-    //Edit button function - Allows user to edit existing Subjects
+
+
+    private int selectedColor = Color.BLACK; // Default color, define this as a class member
+
     private void showEditSubjectDialog(Subject subject) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Edit Subject");
 
-        //opens dialog_edit_subject
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_subject, null);
         final EditText subjectNameInput = viewInflated.findViewById(R.id.subjectNameInput);
         final EditText semesterInput = viewInflated.findViewById(R.id.semesterInput);
-        final EditText colorInput = viewInflated.findViewById(R.id.colorInput);
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
+        final Button colorPickerButton = viewInflated.findViewById(R.id.colorPickerButton);
 
-        //Fills dialog boxes with existing data
         subjectNameInput.setText(subject.getSubjectName());
         semesterInput.setText(subject.getSemester());
-        colorInput.setText(subject.getSubjectColor());
+        selectedColor = Color.parseColor(subject.getColor()); // Parse the color from the subject
 
-        //Sets up the status spinner - array is in res>values>arrays.xml
+        // Set up the color picker button
+        updateColorButton(colorPickerButton);
+        colorPickerButton.setOnClickListener(v -> showColorPickerDialog(colorPickerButton));
+
+        // Sets up the status spinner
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.status_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -127,13 +132,71 @@ public class Subjects extends AppCompatActivity {
         builder.setPositiveButton(android.R.string.ok, (dialog, which) -> {
             String subjectName = subjectNameInput.getText().toString();
             String semester = semesterInput.getText().toString();
-            String color = colorInput.getText().toString();
+            String color = String.format("#%06X", (0xFFFFFF & selectedColor)); // Convert color to hex string
             String status = statusSpinner.getSelectedItem().toString();
             updateSubject(subject, subjectName, semester, color, status);
         });
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
 
         builder.show();
+    }
+
+    private void showColorPickerDialog(Button colorPickerButton) {
+        int[] COLORS = {
+                Color.parseColor("#1976D2"), // Blue
+                Color.parseColor("#388E3C"), // Green
+                Color.parseColor("#D32F2F"), // Red
+                Color.parseColor("#7B1FA2"), // Purple
+                Color.parseColor("#FFA000"), // Amber
+                Color.parseColor("#00796B"), // Teal
+                Color.parseColor("#C2185B"), // Pink
+                Color.parseColor("#0097A7"), // Cyan
+                Color.parseColor("#689F38"), // Light Green
+                Color.parseColor("#303F9F"), // Indigo
+                Color.parseColor("#455A64"), // Blue Grey
+                Color.parseColor("#F57C00")  // Orange
+        };
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        GridLayout gridLayout = new GridLayout(this);
+        gridLayout.setColumnCount(4); // 4 columns
+        gridLayout.setPadding(16, 16, 16, 16);
+
+        // Create the dialog first
+        AlertDialog dialog = builder.create();
+        dialog.setTitle("Choose a Color");
+
+        for (int color : COLORS) {
+            Button colorButton = new Button(this);
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = 100;
+            params.height = 100;
+            params.setMargins(8, 8, 8, 8);
+            colorButton.setLayoutParams(params);
+            colorButton.setBackgroundColor(color);
+
+            colorButton.setOnClickListener(v -> {
+                selectedColor = color;
+                updateColorButton(colorPickerButton);
+                dialog.dismiss(); // Explicitly dismiss the dialog
+            });
+
+            gridLayout.addView(colorButton);
+        }
+
+        // Set the view after creating the dialog
+        dialog.setView(gridLayout);
+        dialog.show();
+    }
+
+    private void updateColorButton(Button colorPickerButton) {
+        colorPickerButton.setBackgroundColor(selectedColor);
+        colorPickerButton.setTextColor(getContrastColor(selectedColor));
+    }
+
+    private int getContrastColor(int color) {
+        double y = (299 * Color.red(color) + 587 * Color.green(color) + 114 * Color.blue(color)) / 1000;
+        return y >= 128 ? Color.BLACK : Color.WHITE;
     }
 
     //Call to method in Firebase.java
@@ -170,6 +233,56 @@ public class Subjects extends AppCompatActivity {
 
     //Call to method in Firebase.java
     private void deleteSubject(Subject subject, View blockView) {
+        showDeleteConfirmationDialog(subject, blockView);
+    }
+
+//    //Checks with user before permanently deleting a subject
+//    private void showDeleteConfirmationDialog(Subject subject, View blockView) {
+//        new AlertDialog.Builder(this)
+//                .setTitle("Delete Subject")
+//                .setMessage("Are you sure you want to delete this subject?")
+//                .setPositiveButton(android.R.string.yes, (dialog, which) -> deleteSubject(subject, blockView))
+//                .setNegativeButton(android.R.string.no, null)
+//                .setIcon(android.R.drawable.ic_dialog_alert)
+//                .show();
+//    }
+
+    private void showDeleteConfirmationDialog(Subject subject, View blockView) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Confirm Deletion");
+        builder.setMessage("What action would you like to take?");
+
+        builder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // Simply dismiss the dialog
+                dialog.dismiss();
+            }
+        });
+
+        // Delete and Block button
+        builder.setNegativeButton("Delete and Block", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // Perform delete and block action
+                performDeleteAndBlock(subject, blockView);
+            }
+        });
+
+        // Delete button
+        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                performDelete(subject, blockView);
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void performDelete(Subject subject, View blockView) {
         firebase.deleteSubject(subject, new Firebase.OnSubjectDeletedListener() {
             @Override
             public void onSuccess() {
@@ -184,16 +297,13 @@ public class Subjects extends AppCompatActivity {
         });
     }
 
-    //Checks with user before permanantly deleting a subject
-    private void showDeleteConfirmationDialog(Subject subject, View blockView) {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Subject")
-                .setMessage("Are you sure you want to delete this subject?")
-                .setPositiveButton(android.R.string.yes, (dialog, which) -> deleteSubject(subject, blockView))
-                .setNegativeButton(android.R.string.no, null)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
+    private void performDeleteAndBlock(Subject subject, View blockView) {
+        subject.setStatus("Blocked");
+        //t(Subject subject, String subjectName, String semester, String color, String status)
+        updateSubject(subject, subject.getSubjectName(), subject.getSemester(), subject.getSubjectColor(), subject.getStatus());
+        fetchAllSubjectsForCurrentUser();
     }
+
 
     //Call to method in Firebase.java
     private void fetchAllSubjectsForCurrentUser() {
@@ -245,19 +355,7 @@ public class Subjects extends AppCompatActivity {
             Log.d("UpdateUI", "Subject: " + subject.getSubjectName() + ", Color: " + subject.getSubjectColor());
 
             int color = parseColor(subject.getSubjectColor());
-            //cardView.setCardBackgroundColor(color);
             nameTextView.setTextColor(color);
-
-//            //Adjusts text color to provide contrast on user selected background color
-//            if (isColorDark(color)) {
-//                nameTextView.setTextColor(Color.WHITE);
-//                statusTextView.setTextColor(Color.WHITE);
-//                extraTextView.setTextColor(Color.WHITE);
-//            } else {
-//                nameTextView.setTextColor(Color.BLACK);
-//                statusTextView.setTextColor(Color.BLACK);
-//                extraTextView.setTextColor(Color.BLACK);
-//            }
 
             String contentDescription = String.format("Subject: %s, Status: %s, Semester: %s",
                     subject.getSubjectName(), subject.getStatus(), subject.getSemester());
@@ -346,5 +444,6 @@ public class Subjects extends AppCompatActivity {
             return subjectName;
         }
         public String getSubjectId() {return subjectId;}
+        public String getColor() {return subjectColor;}
     }
 }

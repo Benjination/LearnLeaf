@@ -306,6 +306,7 @@ public class Firebase {
         }
 
         db.collection("users").document(currentUser.getUid()).collection("subjects")
+                .whereNotEqualTo("status", "Blocked")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Subjects.Subject> allSubjects = new ArrayList<>();
