@@ -463,6 +463,11 @@ public class Tasks extends AppCompatActivity {
 
                 TextView descriptionTextView = taskView.findViewById(R.id.taskDescriptionTextView);
                 descriptionTextView.setText(task.taskDescription);
+                final boolean[] isExpanded = {false};
+                descriptionTextView.setOnClickListener(v -> {
+                    isExpanded[0] = !isExpanded[0];
+                    descriptionTextView.setMaxLines(isExpanded[0] ? Integer.MAX_VALUE : 4);
+                });
 
                 TextView priorityTextView = taskView.findViewById(R.id.taskPriorityTextView);
                 priorityTextView.setText(task.taskPriority);
