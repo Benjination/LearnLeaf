@@ -1,4 +1,4 @@
-package com.example.learnleaf;
+package learn.leaf.learnleaf;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
@@ -22,21 +22,15 @@ import android.widget.Toast;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import java.text.ParseException;
-
-import org.w3c.dom.Text;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -407,7 +401,7 @@ public class Projects extends AppCompatActivity {
 
             cardView.setOnClickListener(v -> {
                 String projectName = project.getProjectName();
-                Intent intent = new Intent(Projects.this, com.example.learnleaf.Tasks.class);
+                Intent intent = new Intent(Projects.this, Tasks.class);
                 intent.putExtra("FILTER_PROJECT", projectName);
                 System.out.println(projectName + " Cardview Click");
                 startActivity(intent);

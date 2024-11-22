@@ -17,15 +17,16 @@
         android:layout_height="wrap_content"
         android:hint="Semester"/>
 
+    <Spinner
+        android:id="@+id/statusSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
     <Button
         android:id="@+id/colorPickerButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Choose Color"/>
 
-    <Spinner
-        android:id="@+id/statusSpinner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
 
 </LinearLayout>

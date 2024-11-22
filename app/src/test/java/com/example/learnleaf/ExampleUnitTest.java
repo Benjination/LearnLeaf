@@ -1,4 +1,4 @@
-package com.example.learnleaf;
+package learn.leaf.learnleaf;
 
 import org.junit.Test;
 

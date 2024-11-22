@@ -1,4 +1,4 @@
-package com.example.learnleaf;
+package learn.leaf.learnleaf;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -7,9 +7,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-import com.google.firebase.auth.FirebaseUser;
 
-import kotlinx.coroutines.scheduling.Task;
+import com.google.firebase.auth.FirebaseUser;
 
 public class Login extends AppCompatActivity {
 

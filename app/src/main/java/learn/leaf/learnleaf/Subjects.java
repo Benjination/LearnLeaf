@@ -1,11 +1,8 @@
-package com.example.learnleaf;
+package learn.leaf.learnleaf;
 
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -25,10 +22,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.core.content.ContextCompat;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.PropertyName;
 import java.lang.reflect.Field;
 import java.util.List;
@@ -58,7 +52,10 @@ public class Subjects extends AppCompatActivity {
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_create_subject, null);
         final EditText subjectNameInput = viewInflated.findViewById(R.id.subjectNameInput);
         final EditText semesterInput = viewInflated.findViewById(R.id.semesterInput);
-        final EditText colorInput = viewInflated.findViewById(R.id.colorInput);
+        Button colorPicker = viewInflated.findViewById(R.id.colorPickerButton);
+
+        updateColorButton(colorPicker);
+        colorPicker.setOnClickListener(v -> showColorPickerDialog(colorPicker));
 
         builder.setView(viewInflated);
 
@@ -88,7 +85,7 @@ public class Subjects extends AppCompatActivity {
             positiveButton.setOnClickListener(v -> {
                 String subjectName = subjectNameInput.getText().toString().trim();
                 String semester = semesterInput.getText().toString().trim();
-                String color = colorInput.getText().toString().trim();
+                String color = String.format("#%06X", (0xFFFFFF & selectedColor));
                 createNewSubject(subjectName, semester, color);
                 dialog.dismiss();
             });

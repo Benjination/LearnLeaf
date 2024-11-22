@@ -1,4 +1,4 @@
-package com.example.learnleaf;
+package learn.leaf.learnleaf;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
@@ -17,6 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.google.firebase.firestore.DocumentReference;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;

@@ -9,7 +9,7 @@
 
     <fragment
         android:id="@+id/navigation_fragment"
-        android:name="com.example.learnleaf.Navigation"
+        android:name="learn.leaf.learnleaf.Navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="25dp"
