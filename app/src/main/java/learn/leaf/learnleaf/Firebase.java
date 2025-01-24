@@ -723,8 +723,12 @@ public class Firebase {
 
         Map<String, Object> profileUpdates = new HashMap<>();
         profileUpdates.put("dateFormat", dateFormat);
-        profileUpdates.put("email", email);
-        profileUpdates.put("name", name);
+        if(!(Objects.equals(email, ""))){
+            profileUpdates.put("email", email);
+        }
+        if(!(Objects.equals(name, ""))){
+            profileUpdates.put("name", name);
+        }
         profileUpdates.put("notifications", notifications);
         profileUpdates.put("timeFormat", timeFormat);
 
