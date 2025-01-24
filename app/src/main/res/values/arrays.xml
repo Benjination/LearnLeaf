@@ -20,4 +20,14 @@
         <item>Status</item>
     </string-array>
 
+    <string-array name="time_array">
+        <item>12h</item>
+        <item>24h</item>
+    </string-array>
+
+    <string-array name="date_array">
+        <item>MM/DD/YYYY</item>
+        <item>DD/MM/YYYY</item>
+    </string-array>
+
 </resources>

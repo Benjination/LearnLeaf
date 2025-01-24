@@ -3,6 +3,8 @@ package learn.leaf.learnleaf;
 import android.content.Context;
 import android.os.Build;
 import android.util.Log;
+import android.widget.Toast;
+
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -661,5 +663,91 @@ public class Firebase {
                 }
             }
         }
+    }
+
+    //-----------------------------------Profile
+    //fetchProfile
+    public void fetchProfileData(OnProfileFetchedListener listener) {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            listener.onFailure("User not signed in");
+            return;
+        }
+
+        String userId = currentUser.getUid();
+
+        db.collection("users").document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+
+                        Log.d("ProfileFetch", documentSnapshot.toString());
+                        Map<String, Object> data = documentSnapshot.getData();
+                        if (data != null) {
+                            String dateFormat = (String) data.get("dateFormat");
+                            String email = (String) data.get("email");
+                            String name = (String) data.get("name");
+                            Boolean notifications = (Boolean) data.get("notifications");
+                            String timeFormat = (String) data.get("timeFormat");
+
+                            // Log the retrieved data
+                            Log.d("ProfileFetch", "Date Format: " + dateFormat);
+                            Log.d("ProfileFetch", "Email: " + email);
+                            Log.d("ProfileFetch", "Name: " + name);
+                            Log.d("ProfileFetch", "Notifications: " + notifications);
+                            Log.d("ProfileFetch", "Time Format: " + timeFormat);
+
+                            Profiles.Profile profile = new Profiles.Profile(dateFormat, email, name, notifications, timeFormat);
+                            listener.onSuccess(profile);
+                        } else {
+                            listener.onFailure("User data is null");
+                        }
+                    } else {
+                        listener.onFailure("User profile not found");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("ProfileFetch", "Error fetching profile", e);
+                    listener.onFailure("Failed to fetch profile: " + e.getMessage());
+                });
+    }
+    //updateProfile
+    public void updateProfileData(String dateFormat, String email, String name, Boolean notifications, String timeFormat, OnProfileUpdatedListener listener) {
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser == null) {
+            listener.onFailure("User not signed in");
+            return;
+        }
+
+        String userId = currentUser.getUid();
+
+        Map<String, Object> profileUpdates = new HashMap<>();
+        profileUpdates.put("dateFormat", dateFormat);
+        profileUpdates.put("email", email);
+        profileUpdates.put("name", name);
+        profileUpdates.put("notifications", notifications);
+        profileUpdates.put("timeFormat", timeFormat);
+
+        db.collection("users").document(userId)
+                .update(profileUpdates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("ProfileUpdate", "Profile successfully updated");
+                    listener.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("ProfileUpdate", "Error updating profile", e);
+                    listener.onFailure("Failed to update profile: " + e.getMessage());
+                });
+    }
+
+    // Interface for callback
+    public interface OnProfileUpdatedListener {
+        void onSuccess();
+        void onFailure(String error);
+    }
+
+    public interface OnProfileFetchedListener {
+        void onSuccess(Profiles.Profile profile);
+        void onFailure(String error);
     }
 }

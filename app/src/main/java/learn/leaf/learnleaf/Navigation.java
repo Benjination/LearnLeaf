@@ -34,7 +34,7 @@ public class Navigation extends Fragment {
         tasksNav.setOnClickListener(v -> navigateTo(Tasks.class));
         subjectsNav.setOnClickListener(v -> navigateTo(Subjects.class));
         projectsNav.setOnClickListener(v -> navigateTo(Projects.class));
-        profileNav.setOnClickListener(v -> navigateTo(Profile.class));
+        profileNav.setOnClickListener(v -> navigateTo(Profiles.class));
         logoutNav.setOnClickListener(v -> logout());
 
         return view;

@@ -11,7 +11,7 @@
         <activity android:name=".Tasks" />
         <activity android:name=".Subjects" />
         <activity android:name=".Projects" />
-        <activity android:name=".Profile" />
+        <activity android:name=".Profiles" />
         <activity android:name=".Login" />
         <activity
             android:name=".SignUp"
