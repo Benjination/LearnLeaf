@@ -1,30 +1,19 @@
 package learn.leaf.learnleaf;
-
-import android.content.Intent;
 import android.os.Bundle;
-
 import androidx.appcompat.widget.SwitchCompat;
-
 import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.Toast;
-
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.PropertyName;
-import learn.leaf.learnleaf.Firebase.OnProfileFetchedListener;
 
-
-import java.util.List;
 
 public class Profiles extends AppCompatActivity {
 
@@ -177,18 +166,17 @@ public class Profiles extends AppCompatActivity {
     }
 
         //Setters
-        public void setProfileName(String name){this.profileName = name;}
-        public void setProfileEmail(String email){this.profileEmail = email;}
-        public void setProfileTime(String time){this.profileTime = time;}
-        public void setProfileDate(String date){this.profileDate = date;}
-        public void setProfileNotify(Boolean notify){this.profileNotify = notify;}
+//        public void setProfileName(String name){this.profileName = name;}
+//        public void setProfileEmail(String email){this.profileEmail = email;}
+//        public void setProfileTime(String time){this.profileTime = time;}
+//        public void setProfileDate(String date){this.profileDate = date;}
+//        public void setProfileNotify(Boolean notify){this.profileNotify = notify;}
 
         // Getters
 
         public String getName() {
             return profileName;
         }
-
         public String getEmail() {
             return profileEmail;
         }
