@@ -98,7 +98,7 @@ public class Profiles extends AppCompatActivity {
     }
 
     private void updateProfileDB(String name, String email, String date, String time, Boolean notify) {
-        firebase.updateProfileData(date, email, name, notify, time, new Firebase.OnProfileUpdatedListener() {
+        firebase.updateProfileData(date, email, name, notify, time, notify, new Firebase.OnProfileUpdatedListener() {
             @Override
             public void onSuccess() {
                 Toast.makeText(Profiles.this, "Profile updated successfully", Toast.LENGTH_SHORT).show();
@@ -110,6 +110,7 @@ public class Profiles extends AppCompatActivity {
             }
         });
     }
+
 
 
     private boolean isValidEmail(String email) {

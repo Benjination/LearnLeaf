@@ -14,6 +14,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -146,7 +148,7 @@ public class SignUp extends AppCompatActivity {
         userData.put("email", email);
         userData.put("name", name);
         userData.put("notifications", true);
-        userData.put("notificationFrequency", 2);
+        userData.put("notificationsFrequency", Arrays.asList(false, false, true, false));
         userData.put("timeFormat", "HH:mm");
 
         db.collection("users").document(user.getUid())
@@ -154,6 +156,7 @@ public class SignUp extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "User data saved successfully"))
                 .addOnFailureListener(e -> Log.w(TAG, "Error saving user data", e));
     }
+
 
     //Password must be 6 char long, contain at least one capital and one lowercase letter, Contain a number, and a Special symbol
     private boolean isValidPassword(String password) {

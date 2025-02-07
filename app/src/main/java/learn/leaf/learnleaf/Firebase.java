@@ -13,6 +13,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -712,7 +713,7 @@ public class Firebase {
                 });
     }
     //updateProfile
-    public void updateProfileData(String dateFormat, String email, String name, Boolean notifications, String timeFormat, OnProfileUpdatedListener listener) {
+    public void updateProfileData(String dateFormat, String email, String name, Boolean notifications, String timeFormat, Boolean notifyChange, OnProfileUpdatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("User not signed in");
@@ -732,6 +733,12 @@ public class Firebase {
         profileUpdates.put("notifications", notifications);
         profileUpdates.put("timeFormat", timeFormat);
 
+        // Update notificationsFrequency array based on notifyChange
+        List<Boolean> notificationsFrequency = notifyChange
+                ? Arrays.asList(false, false, true, false)
+                : Arrays.asList(true, false, false, false);
+        profileUpdates.put("notificationsFrequency", notificationsFrequency);
+
         db.collection("users").document(userId)
                 .update(profileUpdates)
                 .addOnSuccessListener(aVoid -> {
@@ -743,6 +750,8 @@ public class Firebase {
                     listener.onFailure("Failed to update profile: " + e.getMessage());
                 });
     }
+
+
 
     // Interface for callback
     public interface OnProfileUpdatedListener {
