@@ -2,6 +2,7 @@ package learn.leaf.learnleaf;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -61,17 +62,19 @@ public class Tasks extends AppCompatActivity {
     filter.setOnClickListener(v -> showSearchByDialog());
     addNew.setOnClickListener(v -> showCreateTaskDialog());
 
-    String filterSubject = getIntent().getStringExtra("FILTER_SUBJECT");
-    String filterProject = getIntent().getStringExtra("FILTER_PROJECT");
-    System.out.println("Filter_project = " + filterProject);
-    if (filterSubject != null) {
-        searchTaskSubjects(filterSubject);
-    }
-    else if (filterProject != null){
-        searchTaskProjects(filterProject);
+    Intent intent = getIntent();
+    if(intent != null) {
+        String filterSubject = intent.getStringExtra("FILTER_SUBJECT");
+        String filterProject = intent.getStringExtra("FILTER_PROJECT");
+
+        System.out.println("Filter_project = " + filterProject);
+        if (filterSubject != null) {
+            searchTaskSubjects(filterSubject);
+        } else if (filterProject != null) {
+            searchTaskProjects(filterProject);
+        } else {
+            loadTasks();
         }
-    else {
-        loadTasks();
     }
 }
 

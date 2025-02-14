@@ -3,6 +3,7 @@ package learn.leaf.learnleaf;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -401,7 +402,7 @@ public class Projects extends AppCompatActivity {
 
             cardView.setOnClickListener(v -> {
                 String projectName = project.getProjectName();
-                Intent intent = new Intent(Projects.this, Tasks.class);
+                Intent intent = new Intent(Projects.this, learn.leaf.learnleaf.Tasks.class);
                 intent.putExtra("FILTER_PROJECT", projectName);
                 System.out.println(projectName + " Cardview Click");
                 startActivity(intent);
@@ -438,7 +439,7 @@ public class Projects extends AppCompatActivity {
                 List<String> subjectNames = new ArrayList<>();
                 Task<Void> fetchSubjectsTask = null;
                 //SDK constraint version 34+ requirement
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     fetchSubjectsTask = Tasks.whenAllComplete(
                             subjectRefs.stream()
                                     .map(ref -> ref.get().continueWith(task -> {
