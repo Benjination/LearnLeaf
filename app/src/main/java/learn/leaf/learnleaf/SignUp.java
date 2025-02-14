@@ -4,21 +4,28 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
+import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.FirebaseFirestore;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+//password strength indicator
+//import android.os.Bundle;
+//import android.widget.EditText;
+//import androidx.appcompat.app.AppCompatActivity;
+//import nu.aaro.gustav.passwordstrengthmeter.PasswordStrengthCalculator;
+import nu.aaro.gustav.passwordstrengthmeter.PasswordStrengthMeter;
 
 public class SignUp extends AppCompatActivity {
     private static final String TAG = "SignUp";
@@ -30,6 +37,7 @@ public class SignUp extends AppCompatActivity {
     private EditText EM, PW, con, NM;
     private Button submit;
     private TextView Login;
+    private PasswordStrengthMeter passwordStrengthMeter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -43,6 +51,11 @@ public class SignUp extends AppCompatActivity {
             finish();
             return;
         }
+
+        //Asterick Replacement for user input
+        PW.setTransformationMethod(new AsteriskPasswordTransformationMethod());
+        con.setTransformationMethod(new AsteriskPasswordTransformationMethod());
+
 
         //Opens connection to database
         mAuth = FirebaseAuth.getInstance();
@@ -69,6 +82,8 @@ public class SignUp extends AppCompatActivity {
         con = findViewById(R.id.confirm);
         NM = findViewById(R.id.username);
         Login = findViewById(R.id.login);
+        passwordStrengthMeter = findViewById(R.id.passwordStrengthMeter);
+        passwordStrengthMeter.setEditText(PW);
     }
 
 
@@ -102,11 +117,28 @@ public class SignUp extends AppCompatActivity {
             Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show();
             return false;
         }
-        if (!isValidPassword(password)) {
-            Toast.makeText(this, "Password must include letters, numbers, and a special symbol. It must also be at least 6 characters long", Toast.LENGTH_SHORT).show();
+
+        int passwordStrength = calculatePasswordStrength(password);
+        if (passwordStrength < 2) {
+            Toast.makeText(this, "Password is too weak. It must include letters, numbers, and a special symbol, and be at least 6 characters long", Toast.LENGTH_LONG).show();
             return false;
         }
+
         return true;
+    }
+
+    private int calculatePasswordStrength(String password) {
+        if (password.length() < 6) {
+            return 0;
+        } else if (password.matches("^[a-zA-Z]+$")) {
+            return 1;
+        } else if (password.matches("^[a-zA-Z0-9]+$")) {
+            return 2;
+        } else if (password.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{6,}$")) {
+            return 3;
+        } else {
+            return 4;
+        }
     }
 
     //Creates a Firebase authorization for specific user
@@ -158,17 +190,44 @@ public class SignUp extends AppCompatActivity {
     }
 
 
-    //Password must be 6 char long, contain at least one capital and one lowercase letter, Contain a number, and a Special symbol
-    private boolean isValidPassword(String password) {
-        return password.length() >= 6 &&
-                password.matches(".*[a-zA-Z].*") &&
-                password.matches(".*\\d.*") &&
-                password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*");
-    }
+//    //Password must be 6 char long, contain at least one capital and one lowercase letter, Contain a number, and a Special symbol
+//    private boolean isValidPassword(String password) {
+//        return password.length() >= 6 &&
+//                password.matches(".*[a-zA-Z].*") &&
+//                password.matches(".*\\d.*") &&
+//                password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*");
+//    }
 
 
     //Uses built in email format validation
     private boolean isValidEmail(String email) {
         return email != null && !email.isEmpty() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
+
+    private static class AsteriskPasswordTransformationMethod extends PasswordTransformationMethod {
+        @Override
+        public CharSequence getTransformation(CharSequence source, View view) {
+            return new PasswordCharSequence(source);
+        }
+
+        private static class PasswordCharSequence implements CharSequence {
+            private CharSequence mSource;
+
+            public PasswordCharSequence(CharSequence source) {
+                mSource = source;
+            }
+
+            public char charAt(int index) {
+                return '*';
+            }
+
+            public int length() {
+                return mSource.length();
+            }
+
+            public CharSequence subSequence(int start, int end) {
+                return mSource.subSequence(start, end);
+            }
+        }
     }
 }
