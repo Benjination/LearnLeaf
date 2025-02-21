@@ -357,8 +357,8 @@ public class Projects extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Project")
                 .setMessage("Are you sure you want to delete this project?")
-                .setPositiveButton(android.R.string.yes, (dialog, which) -> deleteProject(project.getProjectName(), blockView))
-                .setNegativeButton(android.R.string.no, null)
+                .setPositiveButton("Delete", (dialog, which) -> deleteProject(project.getProjectName(), blockView))
+                .setNegativeButton("Cancel", null)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
     }
