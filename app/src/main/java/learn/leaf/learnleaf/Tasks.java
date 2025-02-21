@@ -262,16 +262,13 @@ public class Tasks extends AppCompatActivity {
         Button dueDateButton = viewInflated.findViewById(R.id.dueDateButton);
         Button dueTimeButton = viewInflated.findViewById(R.id.dueTimeButton);
 
-        //Set up priority and status spinners
         setupSpinners(prioritySpinner, statusSpinner);
 
-        //Variables to store date and time
         final Calendar calendar = Calendar.getInstance();
         final Date[] startDate = {null};
         final Date[] dueDate = {null};
         final Date[] dueTime = {null};
 
-        //Allows user to use calendars and clocks to input timestamps
         setupDateTimePickers(startDateButton, dueDateButton, dueTimeButton, calendar, startDate, dueDate, dueTime);
 
         builder.setView(viewInflated);
@@ -285,7 +282,6 @@ public class Tasks extends AppCompatActivity {
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             positiveButton.setEnabled(false);
 
-            //User will not be able to add new task if assignment is blank
             assignmentInput.addTextChangedListener(new TextWatcher() {
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -310,36 +306,74 @@ public class Tasks extends AppCompatActivity {
                 List<Projects.Project> localProjects = getLocalProjects();
                 List<Subjects.Subject> activeSubjects = getActiveSubjects();
 
-                firebase.createNewTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
-                        startDate[0], dueDate[0], dueTime[0], localProjects, activeSubjects,
-                        new Firebase.OnTaskCreatedListener() {
-                            @Override
-                            public void onSuccess() {
-                                Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
-                                fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
-                                    @Override
-                                    public void onSuccess(List<Tasks.Task> tasks) {
-                                        updateUI(tasks);
-                                    }
+                boolean subjectExists = false;
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    subjectExists = activeSubjects.stream()
+                            .anyMatch(subject -> subject.getSubjectName().equalsIgnoreCase(taskSubject));
+                } else {
+                    for (Subjects.Subject subject : activeSubjects) {
+                        if (subject.getSubjectName().equalsIgnoreCase(taskSubject)) {
+                            subjectExists = true;
+                            break;
+                        }
+                    }
+                }
 
-                                    @Override
-                                    public void onFailure(String errorMessage) {
-                                        Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                                dialog.dismiss();
-                            }
+                if (!subjectExists) {
+                    firebase.createNewSubject(taskSubject, "Default Description", "#FFFFFF", "No Decription", new Firebase.OnSubjectCreatedListener() {
+                        @Override
+                        public void onSuccess() {
+                            createTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
+                                    startDate[0], dueDate[0], dueTime[0], localProjects, activeSubjects, dialog);
+                        }
 
-                            @Override
-                            public void onFailure(String errorMessage) {
-                                Toast.makeText(Tasks.this, "Failed to create task: " + errorMessage, Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                        @Override
+                        public void onFailure(String errorMessage) {
+                            Toast.makeText(Tasks.this, "Failed to create subject: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } else {
+                    createTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
+                            startDate[0], dueDate[0], dueTime[0], localProjects, activeSubjects, dialog);
+                }
             });
         });
 
         dialog.show();
     }
+
+    private void createTask(String taskName, String taskDescription, String taskProject, String taskSubject,
+                            String taskPriority, String taskStatus, Date startDate, Date dueDate, Date dueTime,
+                            List<Projects.Project> localProjects, List<Subjects.Subject> activeSubjects, AlertDialog dialog) {
+        firebase.createNewTask(taskName, taskDescription, taskProject, taskSubject, taskPriority, taskStatus,
+                startDate, dueDate, dueTime, localProjects, activeSubjects,
+                new Firebase.OnTaskCreatedListener() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(Tasks.this, "Task created successfully", Toast.LENGTH_SHORT).show();
+                        fetchTasksForCurrentUser(new Firebase.OnTasksFetchedListener() {
+                            @Override
+                            public void onSuccess(List<Tasks.Task> tasks) {
+                                updateUI(tasks);
+                            }
+
+                            @Override
+                            public void onFailure(String errorMessage) {
+                                Toast.makeText(Tasks.this, "Failed to fetch tasks: " + errorMessage, Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onFailure(String errorMessage) {
+                        Toast.makeText(Tasks.this, "Failed to create task: " + errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+
+
 
     //arrays for spinners in res>values>arrays
     private void setupSpinners(Spinner prioritySpinner, Spinner statusSpinner) {
@@ -390,6 +424,8 @@ public class Tasks extends AppCompatActivity {
         dueTimeButton.setOnClickListener(v -> new TimePickerDialog(Tasks.this, dueTimeListener,
                 calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show());
     }
+
+
 
     //fetches tasks from local database
     private List<Projects.Project> getLocalProjects() {

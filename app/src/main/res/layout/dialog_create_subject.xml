@@ -16,6 +16,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Semester"/>
+    <EditText
+        android:id="@+id/subjectDescriptionInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Description"/>
 
     <Spinner
         android:id="@+id/statusSpinner"

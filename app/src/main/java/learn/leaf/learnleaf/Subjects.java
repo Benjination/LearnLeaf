@@ -52,6 +52,7 @@ public class Subjects extends AppCompatActivity {
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_create_subject, null);
         final EditText subjectNameInput = viewInflated.findViewById(R.id.subjectNameInput);
         final EditText semesterInput = viewInflated.findViewById(R.id.semesterInput);
+        final EditText descriptionInput = viewInflated.findViewById(R.id.subjectDescriptionInput);
         Button colorPicker = viewInflated.findViewById(R.id.colorPickerButton);
 
         updateColorButton(colorPicker);
@@ -86,7 +87,8 @@ public class Subjects extends AppCompatActivity {
                 String subjectName = subjectNameInput.getText().toString().trim();
                 String semester = semesterInput.getText().toString().trim();
                 String color = String.format("#%06X", (0xFFFFFF & selectedColor));
-                createNewSubject(subjectName, semester, color);
+                String description = descriptionInput.getText().toString().trim();
+                createNewSubject(subjectName, semester, color, description);
                 dialog.dismiss();
             });
         });
@@ -105,12 +107,13 @@ public class Subjects extends AppCompatActivity {
         View viewInflated = LayoutInflater.from(this).inflate(R.layout.dialog_edit_subject, null);
         final EditText subjectNameInput = viewInflated.findViewById(R.id.subjectNameInput);
         final EditText semesterInput = viewInflated.findViewById(R.id.semesterInput);
+        final EditText descriptionInput = viewInflated.findViewById(R.id.subjectDescriptionInput);
         final Spinner statusSpinner = viewInflated.findViewById(R.id.statusSpinner);
         final Button colorPickerButton = viewInflated.findViewById(R.id.colorPickerButton);
 
         subjectNameInput.setText(subject.getSubjectName());
-        semesterInput.setText(subject.getSemester());
-        selectedColor = Color.parseColor(subject.getColor()); // Parse the color from the subject
+        semesterInput.setText(subject.getSubjectSemester());
+        selectedColor = Color.parseColor(subject.getSubjectColor()); // Parse the color from the subject
 
         // Set up the color picker button
         updateColorButton(colorPickerButton);
@@ -121,7 +124,7 @@ public class Subjects extends AppCompatActivity {
                 R.array.status_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         statusSpinner.setAdapter(adapter);
-        int spinnerPosition = adapter.getPosition(subject.getStatus());
+        int spinnerPosition = adapter.getPosition(subject.getSubjectStatus());
         statusSpinner.setSelection(spinnerPosition);
 
         builder.setView(viewInflated);
@@ -131,7 +134,8 @@ public class Subjects extends AppCompatActivity {
             String semester = semesterInput.getText().toString();
             String color = String.format("#%06X", (0xFFFFFF & selectedColor)); // Convert color to hex string
             String status = statusSpinner.getSelectedItem().toString();
-            updateSubject(subject, subjectName, semester, color, status);
+            String description = descriptionInput.getText().toString();
+            updateSubject(subject, subjectName, semester, color, status, description);
         });
         builder.setNegativeButton(android.R.string.cancel, (dialog, which) -> dialog.cancel());
 
@@ -197,8 +201,8 @@ public class Subjects extends AppCompatActivity {
     }
 
     //Call to method in Firebase.java
-    private void updateSubject(Subject subject, String subjectName, String semester, String color, String status) {
-        firebase.updateSubject(subject, subjectName, semester, color, status, new Firebase.OnSubjectUpdatedListener() {
+    private void updateSubject(Subject subject, String subjectName, String semester, String color, String status, String description) {
+        firebase.updateSubject(subject, subjectName, semester, color, status, description, new Firebase.OnSubjectUpdatedListener() {
             @Override
             public void onSuccess() {
                 Toast.makeText(Subjects.this, "Subject updated successfully", Toast.LENGTH_SHORT).show();
@@ -213,8 +217,8 @@ public class Subjects extends AppCompatActivity {
     }
 
     //Call to method in Firebase.java
-    private void createNewSubject(String subjectName, String semester, String color) {
-        firebase.createNewSubject(subjectName, semester, color, new Firebase.OnSubjectCreatedListener() {
+    private void createNewSubject(String subjectName, String semester, String color, String description) {
+        firebase.createNewSubject(subjectName, semester, color, description, new Firebase.OnSubjectCreatedListener() {
             @Override
             public void onSuccess() {
                 Toast.makeText(Subjects.this, "Subject created successfully", Toast.LENGTH_SHORT).show();
@@ -228,21 +232,7 @@ public class Subjects extends AppCompatActivity {
         });
     }
 
-    //Call to method in Firebase.java
-    private void deleteSubject(Subject subject, View blockView) {
-        showDeleteConfirmationDialog(subject, blockView);
-    }
 
-//    //Checks with user before permanently deleting a subject
-//    private void showDeleteConfirmationDialog(Subject subject, View blockView) {
-//        new AlertDialog.Builder(this)
-//                .setTitle("Delete Subject")
-//                .setMessage("Are you sure you want to delete this subject?")
-//                .setPositiveButton(android.R.string.yes, (dialog, which) -> deleteSubject(subject, blockView))
-//                .setNegativeButton(android.R.string.no, null)
-//                .setIcon(android.R.drawable.ic_dialog_alert)
-//                .show();
-//    }
 
     private void showDeleteConfirmationDialog(Subject subject, View blockView) {
 
@@ -295,9 +285,9 @@ public class Subjects extends AppCompatActivity {
     }
 
     private void performDeleteAndBlock(Subject subject, View blockView) {
-        subject.setStatus("Blocked");
-        //t(Subject subject, String subjectName, String semester, String color, String status)
-        updateSubject(subject, subject.getSubjectName(), subject.getSemester(), subject.getSubjectColor(), subject.getStatus());
+        subject.setSubjectStatus("Blocked");
+        updateSubject(subject, subject.getSubjectName(), subject.getSubjectSemester(),
+                subject.getSubjectColor(), subject.getSubjectStatus(), subject.getSubjectDescription());
         fetchAllSubjectsForCurrentUser();
     }
 
@@ -335,6 +325,7 @@ public class Subjects extends AppCompatActivity {
 
         for (Subject subject : subjects) {
             //creates item block for each subject in subject list
+            Log.d("UpdateUI", "Updating UI with " + subjects.size() + " subjects");
             View blockView = getLayoutInflater().inflate(R.layout.item_block, subjectsContainer, false);
 
             CardView cardView = blockView.findViewById(R.id.itemCardView);
@@ -344,9 +335,12 @@ public class Subjects extends AppCompatActivity {
             ImageButton editButton = blockView.findViewById(R.id.editButton);
             ImageButton deleteButton = blockView.findViewById(R.id.deleteButton);
 
+            //name
             nameTextView.setText(subject.getSubjectName());
-            statusTextView.setText("Status: " + subject.getStatus());
-            extraTextView.setText("Semester: " + subject.getSemester());
+            //semester
+            statusTextView.setText("Semester: " + subject.getSubjectSemester());
+            //description
+            extraTextView.setText("Semester: " + subject.getSubjectDescription());
 
             // Debug log to check the color value
             Log.d("UpdateUI", "Subject: " + subject.getSubjectName() + ", Color: " + subject.getSubjectColor());
@@ -355,7 +349,7 @@ public class Subjects extends AppCompatActivity {
             nameTextView.setTextColor(color);
 
             String contentDescription = String.format("Subject: %s, Status: %s, Semester: %s",
-                    subject.getSubjectName(), subject.getStatus(), subject.getSemester());
+                    subject.getSubjectName(), subject.getSubjectStatus(), subject.getSubjectSemester());
             cardView.setContentDescription(contentDescription);
 
             editButton.setOnClickListener(v -> showEditSubjectDialog(subject));
@@ -390,11 +384,7 @@ public class Subjects extends AppCompatActivity {
         }
     }
 
-    //Determines if Color is "Dark"
-    private boolean isColorDark(int color) {
-        double darkness = 1 - (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255;
-        return darkness >= 0.5;
-    }
+
 
     // Subject class to represent the data model
     public static class Subject {
@@ -403,8 +393,8 @@ public class Subjects extends AppCompatActivity {
         private String subjectStatus;
         private String subjectColor;
         private String subjectName;
-        private String subjectDescription; //Will have eventually
-        public String subjectId;
+        private String subjectDescription;
+        private String subjectId;//Will have eventually
 
 
         //Empty constructor required by Firebase
@@ -412,35 +402,34 @@ public class Subjects extends AppCompatActivity {
         public Subject() {}
 
         public Subject(String semester, String status, String subjectColor, String subjectName) {
-            this.subjectSemester = semester;
-            this.subjectStatus = status;
             this.subjectColor = subjectColor;
             this.subjectName = subjectName;
+            this.subjectSemester = subjectSemester;
+            this.subjectStatus = subjectStatus;
+            this.subjectDescription = subjectDescription;
+            this.subjectId = subjectId;
         }
 
         //Setters
         public void setSubjectColor(String color){this.subjectColor = color;}
-        public void setSubjectId(String documentId) {this.subjectId = documentId;}
         public void setSubjectName(String newSubjectName) {this.subjectName = newSubjectName;}
-        public void setSemester(String newSemester) {this.subjectSemester = newSemester;}
-        public void setStatus(String newStatus) {this.subjectStatus = newStatus;}
+        public void setSubjectSemester(String newSubjectSemester){this.subjectSemester = newSubjectSemester;}
+        public void setSubjectStatus(String newSubjectStatus){this.subjectStatus = newSubjectStatus;}
+        public void setSubjectDescription(String newSubjectDescription){this.subjectDescription = newSubjectDescription;}
+        public void setSubjectId(String newsubjectId){this.subjectId = newsubjectId;}
+
 
         // Getters
-        @PropertyName("subjectSemester")
-        public String getSemester() {
-            return subjectSemester;
-        }
-        @PropertyName("subjectStatus")
-        public String getStatus() {
-            return subjectStatus;
-        }
         public String getSubjectColor() {
             return subjectColor;
         }
         public String getSubjectName() {
             return subjectName;
         }
-        public String getSubjectId() {return subjectId;}
-        public String getColor() {return subjectColor;}
+        public String getSubjectSemester(){return subjectSemester;}
+        public String getSubjectStatus(){return subjectStatus;}
+        public String getSubjectDescription(){return subjectDescription;}
+        public String getSubjectId(){return subjectId;}
+
     }
 }

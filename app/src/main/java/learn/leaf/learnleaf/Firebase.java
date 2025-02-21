@@ -203,7 +203,7 @@ public class Firebase {
     //--------------------------------Subjects
 
     //edit subject feature
-    public void updateSubject(Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, OnSubjectUpdatedListener listener) {
+    public void updateSubject(Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, String newDescription, OnSubjectUpdatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("User not signed in");
@@ -214,14 +214,14 @@ public class Firebase {
 
         // Use the subject's ID directly if available
         if (subject.getSubjectId() != null && !subject.getSubjectId().isEmpty()) {
-            updateSubjectById(userId, subject, newSubjectName, newSemester, newColor, newStatus, listener);
+            updateSubjectById(userId, subject, newSubjectName, newSemester, newColor, newStatus, newDescription, listener);
         } else {
             // Fallback to querying by name if ID is not available
-            findAndUpdateSubject(userId, subject, newSubjectName, newSemester, newColor, newStatus, listener);
+            findAndUpdateSubject(userId, subject, newSubjectName, newSemester, newColor, newStatus,newDescription, listener);
         }
     }
 
-    private void updateSubjectById(String userId, Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, OnSubjectUpdatedListener listener) {
+    private void updateSubjectById(String userId, Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, String newDescription, OnSubjectUpdatedListener listener) {
         db.collection("users").document(userId).collection("subjects").document(subject.getSubjectId())
                 .update(
                         "subjectName", newSubjectName,
@@ -230,13 +230,13 @@ public class Firebase {
                         "status", newStatus
                 )
                 .addOnSuccessListener(aVoid -> {
-                    updateLocalSubject(subject, newSubjectName, newSemester, newColor, newStatus);
+                    updateLocalSubject(subject, newSubjectName, newSemester, newColor, newStatus, newDescription);
                     listener.onSuccess();
                 })
                 .addOnFailureListener(e -> listener.onFailure("Error updating subject: " + e.getMessage()));
     }
 
-    private void findAndUpdateSubject(String userId, Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, OnSubjectUpdatedListener listener) {
+    private void findAndUpdateSubject(String userId, Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, String newDescription, OnSubjectUpdatedListener listener) {
         db.collection("users").document(userId).collection("subjects")
                 .whereEqualTo("subjectName", subject.getSubjectName())
                 .get()
@@ -246,7 +246,7 @@ public class Firebase {
                         String documentId = documentSnapshot.getId();
                         subject.setSubjectId(documentId); // Set the ID for future use
 
-                        updateSubjectById(userId, subject, newSubjectName, newSemester, newColor, newStatus, listener);
+                        updateSubjectById(userId, subject, newSubjectName, newSemester, newColor, newStatus, newDescription, listener);
                     } else {
                         listener.onFailure("Subject not found");
                     }
@@ -254,11 +254,12 @@ public class Firebase {
                 .addOnFailureListener(e -> listener.onFailure("Error finding subject: " + e.getMessage()));
     }
 
-    private void updateLocalSubject(Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus) {
+    private void updateLocalSubject(Subjects.Subject subject, String newSubjectName, String newSemester, String newColor, String newStatus, String newDescription) {
         subject.setSubjectName(newSubjectName);
-        subject.setSemester(newSemester);
+        subject.setSubjectSemester(newSemester);
         subject.setSubjectColor(newColor);
-        subject.setStatus(newStatus);
+        subject.setSubjectStatus(newStatus);
+        subject.setSubjectDescription(newDescription);
 
         // Update the subject in the localSubjects list
         for (int i = 0; i < localSubjects.size(); i++) {
@@ -270,7 +271,7 @@ public class Firebase {
     }
 
     //Creates a new Subject in Firebase and local database
-    public void createNewSubject(String subjectName, String semester, String color, OnSubjectCreatedListener listener) {
+    public void createNewSubject(String subjectName, String semester, String color, String description, OnSubjectCreatedListener listener) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             listener.onFailure("User not signed in");
@@ -278,11 +279,14 @@ public class Firebase {
         }
 
         //This map ensures new subject is updated to Firestore in the correct order and format
+        //color, description, name, semester, status
         Map<String, Object> newSubject = new HashMap<>();
+        newSubject.put("subjectColor", color);
+        newSubject.put("subjectDescription", description);
+        newSubject.put("subjectName", subjectName);
         newSubject.put("subjectSemester", semester);
         newSubject.put("subjectStatus", "Active");
-        newSubject.put("subjectColor", color);
-        newSubject.put("subjectName", subjectName);
+
 
         db.collection("users").document(currentUser.getUid()).collection("subjects")
                 .add(newSubject)
@@ -309,22 +313,29 @@ public class Firebase {
         }
 
         db.collection("users").document(currentUser.getUid()).collection("subjects")
-                .whereNotEqualTo("status", "Blocked")
+                .whereNotEqualTo("subjectStatus", "Blocked")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Subjects.Subject> allSubjects = new ArrayList<>();
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         Subjects.Subject subject = document.toObject(Subjects.Subject.class);
                         if (subject != null) {
-                            subject.subjectId = document.getId();
+                            subject.setSubjectId(document.getId());
                             subject.setSubjectColor(document.getString("subjectColor"));
+                            subject.setSubjectName(document.getString("subjectName"));
+                            subject.setSubjectStatus(document.getString("subjectStatus"));
+                            subject.setSubjectDescription(document.getString("subjectDescription"));
+                            subject.setSubjectSemester(document.getString("subjectSemester"));
                             allSubjects.add(subject);
 
+                            //color, description, name, semester,status
+
                             Log.d("SubjectFetch", "Subject: " + subject.getSubjectName()
-                                    + ", Status: " + subject.getStatus()
-                                    + ", Semester: " + subject.getSemester()
+                                    + ", Status: " + subject.getSubjectStatus()
+                                    + ", Semester: " + subject.getSubjectSemester()
                                     + ", Color: " + subject.getSubjectColor()
-                                    + ", ID: " + subject.subjectId);
+                                    + ", ID: " + subject.getSubjectId()
+                                    + ", Description: " + subject.getSubjectDescription());
                         }
                     }
                     localSubjects.clear(); //Clear to avoid Duplicates

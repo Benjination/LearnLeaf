@@ -12,6 +12,12 @@
         android:hint="Subject Name"/>
 
     <EditText
+        android:id="@+id/subjectDescriptionInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Description"/>
+
+    <EditText
         android:id="@+id/semesterInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
