@@ -103,7 +103,17 @@ public class Login extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
-                        updateUI(user);
+                        if (user != null) {
+                            // Check if the user's email is verified
+                            if (user.isEmailVerified()) {
+                                updateUI(user); // Proceed to the next activity or update UI
+                            } else {
+                                Toast.makeText(Login.this,
+                                        "Please verify your email",
+                                        Toast.LENGTH_LONG).show();
+                                mAuth.signOut(); // Sign out the user to prevent access
+                            }
+                        }
                     } else {
                         Log.w(TAG, "signInWithEmail:failure", task.getException());
                         Toast.makeText(Login.this,
@@ -112,6 +122,7 @@ public class Login extends AppCompatActivity {
                     }
                 });
     }
+
 
     private void updateUI(FirebaseUser user) {
         if (user != null) {

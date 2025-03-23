@@ -20,11 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-//password strength indicator
-//import android.os.Bundle;
-//import android.widget.EditText;
-//import androidx.appcompat.app.AppCompatActivity;
-//import nu.aaro.gustav.passwordstrengthmeter.PasswordStrengthCalculator;
 import nu.aaro.gustav.passwordstrengthmeter.PasswordStrengthMeter;
 
 public class SignUp extends AppCompatActivity {
@@ -141,23 +136,46 @@ public class SignUp extends AppCompatActivity {
         }
     }
 
-    //Creates a Firebase authorization for specific user
+    // Creates a Firebase authorization for specific user and sends email verification
     private void createUser() {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         FirebaseUser user = mAuth.getCurrentUser();
-                        updateUserProfile(Objects.requireNonNull(user));
-                        saveAdditionalUserInfo(user);
-                        Toast.makeText(SignUp.this, "User created successfully", Toast.LENGTH_SHORT).show();
-                        startActivity(new Intent(SignUp.this, Login.class));
-                        finish();
+                        if (user != null) {
+                            // Send email verification
+                            user.sendEmailVerification()
+                                    .addOnCompleteListener(verificationTask -> {
+                                        if (verificationTask.isSuccessful()) {
+                                            Toast.makeText(SignUp.this,
+                                                    "Verification email sent to " + user.getEmail(),
+                                                    Toast.LENGTH_SHORT).show();
+                                        } else {
+                                            Log.e(TAG, "sendEmailVerification", verificationTask.getException());
+                                            Toast.makeText(SignUp.this,
+                                                    "Failed to send verification email.",
+                                                    Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+
+                            // Update user profile and save additional info
+                            updateUserProfile(user);
+                            saveAdditionalUserInfo(user);
+
+                            // Notify user and redirect to login
+                            Toast.makeText(SignUp.this, "User created successfully", Toast.LENGTH_SHORT).show();
+                            startActivity(new Intent(SignUp.this, Login.class));
+                            finish();
+                        }
                     } else {
                         Log.w(TAG, "createUserWithEmail:failure", task.getException());
-                        Toast.makeText(SignUp.this, "Authentication failed: " + Objects.requireNonNull(task.getException()).getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(SignUp.this,
+                                "Authentication failed: " + Objects.requireNonNull(task.getException()).getMessage(),
+                                Toast.LENGTH_LONG).show();
                     }
                 });
     }
+
 
     //Adds user data to Firebase
     private void updateUserProfile(FirebaseUser user) {
@@ -188,15 +206,6 @@ public class SignUp extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> Log.d(TAG, "User data saved successfully"))
                 .addOnFailureListener(e -> Log.w(TAG, "Error saving user data", e));
     }
-
-
-//    //Password must be 6 char long, contain at least one capital and one lowercase letter, Contain a number, and a Special symbol
-//    private boolean isValidPassword(String password) {
-//        return password.length() >= 6 &&
-//                password.matches(".*[a-zA-Z].*") &&
-//                password.matches(".*\\d.*") &&
-//                password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*");
-//    }
 
 
     //Uses built in email format validation
