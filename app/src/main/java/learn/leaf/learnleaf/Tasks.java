@@ -24,6 +24,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -871,6 +872,83 @@ public class Tasks extends AppCompatActivity {
         public String getTaskPriority() {return taskPriority;}
         public String getTaskStatus() {return taskStatus;}
     }
+
+    //--------------------------------------------In-App Notifications
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkUpcomingTasks();
+    }
+
+
+    private FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    private String currentUserId;
+
+
+    private void checkUpcomingTasks() {
+        currentUserId = mAuth.getCurrentUser().getUid();
+
+        // 1. Get user's notification preferences
+        db.collection("users").document(currentUserId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (document.exists()) {
+                            Long frequencyDays = document.getLong("notificationFrequency");
+                            Date lastNotified = document.getDate("lastNotified");
+
+                            if (shouldCheckNow(lastNotified, frequencyDays)) {
+                                queryUpcomingTasks();
+                            }
+                        }
+                    }
+                });
+    }
+
+    private boolean shouldCheckNow(Date lastNotified, Long frequencyDays) {
+        if (frequencyDays == null) return true; // Default to daily
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DAY_OF_MONTH, -frequencyDays.intValue());
+        return lastNotified == null || lastNotified.before(cal.getTime());
+    }
+
+    private void queryUpcomingTasks() {
+        // Calculate date range
+        Calendar calendar = Calendar.getInstance();
+        Date now = calendar.getTime();
+        calendar.add(Calendar.DAY_OF_MONTH, 2);
+        Date twoDaysLater = calendar.getTime();
+
+        // Query tasks due in next 2 days
+        db.collection("tasks")
+                .whereEqualTo("userId", currentUserId)
+                .whereGreaterThanOrEqualTo("dueDate", now)
+                .whereLessThanOrEqualTo("dueDate", twoDaysLater)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        int taskCount = task.getResult().size();
+                        if (taskCount > 0) {
+                            showNotification(taskCount);
+                            updateLastNotifiedTime();
+                        }
+                    }
+                });
+    }
+
+    private void showNotification(int taskCount) {
+        // Show in-app Toast (can be replaced with Snackbar)
+        Toast.makeText(this,
+                "You have " + taskCount + " tasks due in the next 2 days!",
+                Toast.LENGTH_LONG).show();
+    }
+
+    private void updateLastNotifiedTime() {
+        db.collection("users").document(currentUserId)
+                .update("lastNotified", new Date());
+    }
+
 
 }
 
