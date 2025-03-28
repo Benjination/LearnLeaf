@@ -1,8 +1,11 @@
 package learn.leaf.learnleaf;
 
 import android.app.DatePickerDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -24,6 +27,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -34,6 +38,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.RemoteMessage;
+
+import org.checkerframework.common.returnsreceiver.qual.This;
 
 public class Tasks extends AppCompatActivity {
     private LinearLayout tasksContainer;
@@ -871,6 +879,91 @@ public class Tasks extends AppCompatActivity {
         public String getTaskPriority() {return taskPriority;}
         public String getTaskStatus() {return taskStatus;}
     }
+
+    //--------------------------------------------In-App Notifications
+    private static final String CHANNEL_ID = "task_notifications";
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkUpcomingTasks();
+    }
+
+
+    private FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    private String currentUserId;
+
+
+    private void checkUpcomingTasks() {
+        currentUserId = mAuth.getCurrentUser().getUid();
+
+        db.collection("users").document(currentUserId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        DocumentSnapshot document = task.getResult();
+                        if (document.exists()) {
+                            // Existing logic + token handling
+                            List<String> tokens = (List<String>) document.get("fcmTokens");
+                            if (tokens == null) tokens = new ArrayList<>();
+
+                            // Store new token if needed
+                            storeFcmTokenIfNew(tokens);
+                        }
+                    }
+                });
+    }
+
+    private void storeFcmTokenIfNew(List<String> existingTokens) {
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && !existingTokens.contains(task.getResult())) {
+                        existingTokens.add(task.getResult());
+                        db.collection("users").document(currentUserId)
+                                .update("fcmTokens", existingTokens);
+                    }
+                });
+    }
+
+    private void showNotification(int taskCount) {
+        // 1. Get FCM token
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String token = task.getResult();
+                        sendNotificationToServer(token, taskCount);
+                    }
+                });
+    }
+
+
+    private void sendNotificationToServer(String token, int taskCount) {
+        // 2. Send notification via FCM
+        FirebaseMessaging.getInstance().send(new RemoteMessage.Builder(token)
+                .setMessageId(Integer.toString(taskCount))
+                .addData("title", "Upcoming Tasks")
+                .addData("body", "You have " + taskCount + " tasks due in the next 2 days!")
+                .build());
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Task Reminders",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+        }
+    }
+
+
+
+    private void updateLastNotifiedTime() {
+        db.collection("users").document(currentUserId)
+                .update("lastNotified", new Date());
+    }
+
 
 }
 

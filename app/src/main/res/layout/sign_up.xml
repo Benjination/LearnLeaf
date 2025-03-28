@@ -10,7 +10,7 @@
 
     <EditText
         android:id="@+id/username"
-        android:layout_width="150dp"
+        android:layout_width="340dp"
         android:layout_height="48dp"
         android:layout_marginTop="224dp"
         android:background="@color/white"
@@ -28,7 +28,7 @@
 
     <EditText
         android:id="@+id/email"
-        android:layout_width="150dp"
+        android:layout_width="340dp"
         android:layout_height="48dp"
         android:layout_marginTop="12dp"
         android:background="@color/white"
@@ -45,7 +45,7 @@
 
     <EditText
         android:id="@+id/confirm"
-        android:layout_width="150dp"
+        android:layout_width="340dp"
         android:layout_height="48dp"
         android:layout_marginTop="68dp"
         android:background="@color/white"
@@ -64,7 +64,7 @@
 
     <EditText
         android:id="@+id/password"
-        android:layout_width="150dp"
+        android:layout_width="340dp"
         android:layout_height="48dp"
         android:layout_marginTop="12dp"
         android:background="@color/white"
@@ -143,7 +143,7 @@
         android:id="@+id/imageView"
         android:layout_width="389dp"
         android:layout_height="71dp"
-        android:layout_marginTop="72dp"
+        android:layout_marginTop="10dp"
         android:contentDescription="@string/banner"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

@@ -8,12 +8,22 @@
         android:roundIcon="@drawable/learnleaf_logo_circle"
         android:supportsRtl="true"
         android:theme="@style/Theme.Design.Light.NoActionBar">
-        <activity android:name="learn.leaf.learnleaf.Tasks" />
-        <activity android:name="learn.leaf.learnleaf.Subjects" />
-        <activity android:name="learn.leaf.learnleaf.Projects" />
-        <activity android:name="learn.leaf.learnleaf.Profiles" />
-        <activity android:name="learn.leaf.learnleaf.Login" />
-        <activity android:name="learn.leaf.learnleaf.SignUp"
+        <service
+            android:name=".MyFirebaseMessagingService"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <activity android:name=".Tasks" />
+        <activity android:name=".Subjects" />
+        <activity android:name=".Projects" />
+        <activity android:name=".Profiles" />
+        <activity android:name=".Login" />
+        <activity
+            android:name=".SignUp"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -21,9 +31,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
     </application>
-
-
 
 </manifest>

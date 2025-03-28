@@ -359,7 +359,7 @@ public class Projects extends AppCompatActivity {
                 .setMessage("Are you sure you want to delete this project?")
                 .setPositiveButton("Delete", (dialog, which) -> deleteProject(project.getProjectName(), blockView))
                 .setNegativeButton("Cancel", null)
-                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setIcon(R.drawable.learnleaf)
                 .show();
     }
 
