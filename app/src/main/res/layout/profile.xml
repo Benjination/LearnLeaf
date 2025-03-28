@@ -21,7 +21,7 @@
         android:id="@+id/imageView"
         android:layout_width="389dp"
         android:layout_height="71dp"
-        android:layout_marginTop="72dp"
+        android:layout_marginTop="10dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -155,6 +155,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"
+        android:minHeight="48dp"
         android:text="Notifications"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.108"
@@ -167,8 +168,10 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
         android:text="Update Preferances"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/notifySw" />
+        app:layout_constraintTop_toBottomOf="@+id/notifySw"
+        app:layout_constraintVertical_bias="0.0" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

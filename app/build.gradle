@@ -5,12 +5,12 @@ plugins {
 
 
 android {
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "learn.leaf.learnleaf"
         minSdk 23
-        targetSdk 34
+        targetSdk 35
         //beta
         versionCode 2
         versionName "2.0"
@@ -43,6 +43,8 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.11.0')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'androidx.fragment:fragment:1.8.6'
+    implementation 'com.google.firebase:firebase-messaging:24.1.1'
+    implementation 'androidx.activity:activity:1.10.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
     testImplementation 'org.testng:testng:6.9.6'

@@ -1,8 +1,11 @@
 package learn.leaf.learnleaf;
 
 import android.app.DatePickerDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -35,6 +38,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.RemoteMessage;
+
+import org.checkerframework.common.returnsreceiver.qual.This;
 
 public class Tasks extends AppCompatActivity {
     private LinearLayout tasksContainer;
@@ -874,6 +881,7 @@ public class Tasks extends AppCompatActivity {
     }
 
     //--------------------------------------------In-App Notifications
+    private static final String CHANNEL_ID = "task_notifications";
     @Override
     protected void onResume() {
         super.onResume();
@@ -888,61 +896,68 @@ public class Tasks extends AppCompatActivity {
     private void checkUpcomingTasks() {
         currentUserId = mAuth.getCurrentUser().getUid();
 
-        // 1. Get user's notification preferences
         db.collection("users").document(currentUserId)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         DocumentSnapshot document = task.getResult();
                         if (document.exists()) {
-                            Long frequencyDays = document.getLong("notificationFrequency");
-                            Date lastNotified = document.getDate("lastNotified");
+                            // Existing logic + token handling
+                            List<String> tokens = (List<String>) document.get("fcmTokens");
+                            if (tokens == null) tokens = new ArrayList<>();
 
-                            if (shouldCheckNow(lastNotified, frequencyDays)) {
-                                queryUpcomingTasks();
-                            }
+                            // Store new token if needed
+                            storeFcmTokenIfNew(tokens);
                         }
                     }
                 });
     }
 
-    private boolean shouldCheckNow(Date lastNotified, Long frequencyDays) {
-        if (frequencyDays == null) return true; // Default to daily
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_MONTH, -frequencyDays.intValue());
-        return lastNotified == null || lastNotified.before(cal.getTime());
-    }
-
-    private void queryUpcomingTasks() {
-        // Calculate date range
-        Calendar calendar = Calendar.getInstance();
-        Date now = calendar.getTime();
-        calendar.add(Calendar.DAY_OF_MONTH, 2);
-        Date twoDaysLater = calendar.getTime();
-
-        // Query tasks due in next 2 days
-        db.collection("tasks")
-                .whereEqualTo("userId", currentUserId)
-                .whereGreaterThanOrEqualTo("dueDate", now)
-                .whereLessThanOrEqualTo("dueDate", twoDaysLater)
-                .get()
+    private void storeFcmTokenIfNew(List<String> existingTokens) {
+        FirebaseMessaging.getInstance().getToken()
                 .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        int taskCount = task.getResult().size();
-                        if (taskCount > 0) {
-                            showNotification(taskCount);
-                            updateLastNotifiedTime();
-                        }
+                    if (task.isSuccessful() && !existingTokens.contains(task.getResult())) {
+                        existingTokens.add(task.getResult());
+                        db.collection("users").document(currentUserId)
+                                .update("fcmTokens", existingTokens);
                     }
                 });
     }
 
     private void showNotification(int taskCount) {
-        // Show in-app Toast (can be replaced with Snackbar)
-        Toast.makeText(this,
-                "You have " + taskCount + " tasks due in the next 2 days!",
-                Toast.LENGTH_LONG).show();
+        // 1. Get FCM token
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        String token = task.getResult();
+                        sendNotificationToServer(token, taskCount);
+                    }
+                });
     }
+
+
+    private void sendNotificationToServer(String token, int taskCount) {
+        // 2. Send notification via FCM
+        FirebaseMessaging.getInstance().send(new RemoteMessage.Builder(token)
+                .setMessageId(Integer.toString(taskCount))
+                .addData("title", "Upcoming Tasks")
+                .addData("body", "You have " + taskCount + " tasks due in the next 2 days!")
+                .build());
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Task Reminders",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(channel);
+        }
+    }
+
+
 
     private void updateLastNotifiedTime() {
         db.collection("users").document(currentUserId)
