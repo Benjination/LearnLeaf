@@ -1,148 +1,58 @@
 package learn.leaf.learnleaf;
 
-// Basics
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
-import androidx.appcompat.app.AppCompatActivity;
-
-//Credential management tools
-import androidx.credentials.Credential;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.TextView;
+import android.widget.Toast;
 import androidx.credentials.CredentialManager;
-import androidx.credentials.CredentialManagerCallback;
-import androidx.credentials.CustomCredential;
-import androidx.credentials.GetCredentialRequest;
-import androidx.credentials.GetCredentialResponse;
-import androidx.credentials.GetPasswordOption;
-import androidx.credentials.GetPublicKeyCredentialOption;
-import androidx.credentials.PasswordCredential;
-import androidx.credentials.exceptions.GetCredentialException;
-import androidx.credentials.webauthn.PublicKeyCredentialCreationOptions;
-//import androidx.credentials.SaveCredentialRequest;
-import androidx.credentials.PublicKeyCredential;
 
+<<<<<<< HEAD
 import android.os.CancellationSignal;
 
 // Google identity tools
 //import com.google.android.gms.fido.fido2.api.common.PublicKeyCredential;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
+=======
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+>>>>>>> parent of b283b71 (attempted sso)
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 
-//Concurrency stuff
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-
-//Widget tools
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Toast;
-import android.widget.TextView;
-
-
-//-> sign in with password
-//onCreate -> getAvailable ->
-
-// Pseudo code
-// pull available credential options
-// if no credential options are available, generate new credential with password
-// save new credential
-// initiate sign in with new credential
-
-// SIGN IN FLOW
-//    - open authentication screen (bottom sheet ideally) (bottom sheet is credential manager?)
-//    - once the user signs in, we get a credential object that we can use to create id token
-//    -
-//    - create instance of cred manager
-//    - use sign in to get a credential object
-//    - create ID token with credential
-//    - pass token to firebase
-//    -
-
-
 public class Login extends AppCompatActivity {
 
+    private static final String TAG = "Login";
 
-    //===================================================
-    //==================== F I E L D S ==================
-    //===================================================
-    private static final String TAG = "LoginActivity";
-
-    //create credential manager instance
-    private CredentialManager credentialManager;
     private FirebaseAuth mAuth;
-    private ExecutorService executorService;
+    private CredentialManager credentialManager;
+
+    private ImageButton googleBtn;
+    private Button back, submit;
     private EditText email, password;
-    private Button submit, back;
     private TextView forgot;
 
-
-    private String requestJson = "google-services.json";//might not be necessary
-/*
-    // Retrieves the user's saved password for your app from their password provider.
-    GetPasswordOption getPasswordOption = new GetPasswordOption();
-
-    // Get passkey from the user's public key credential provider.
-    GetPublicKeyCredentialOption getPublicKeyGoogleOption =
-            new GetPublicKeyCredentialOption("google-services.json");
-*/
-    // TODO: create google sign in credential object with data from google-services.json
-    // val googleIdOption = GetGoogleIdOption.builder()
-    //        .SetFilterByAuthorizedAccounts(hasFilter)
-    //retrieveSavedCredentials();
-
-
-    //=======================================================
-    //================== M E T H O D S ======================
-    //=======================================================
-
-    //===========================
-    //==== INITIALIZE VIEWS =====
-    //===========================
-    private void initializeViews() {
-        back = findViewById(R.id.back);
-        submit = findViewById(R.id.submit);
-        email = findViewById(R.id.email);
-        password = findViewById(R.id.password);
-        password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        forgot = findViewById(R.id.fgPassword);///// TODO: FIGURE OUT WHAT THIS IS FOR
-    }
-
-
-    // ============================
-    // ==== SET LISTENERS =========
-    // ============================
-    private void setListeners(){
-        back.setOnClickListener(v -> {
-            startActivity(new Intent(Login.this, SignUp.class));
-            finish();
-        });
-        submit.setOnClickListener(v -> signInWithPassword( email.getText().toString().trim(),
-         password.getText().toString().trim()));
-        //forgot.setOnClickListener(v -> forgotPassword());
-    }
-
-
-    // ============================
-    // ========= ON CREATE ========
-    // ============================
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Create the code from the parent and set up the image
         super.onCreate(savedInstanceState);
         setContentView(R.layout.login);
 
-        //Create the instance of the credential manager, executor, and firebase auth
-        credentialManager = CredentialManager.create(this);
-        executorService = Executors.newSingleThreadExecutor();
+        // Initialize Firebase Auth and Credential Manager
         mAuth = FirebaseAuth.getInstance();
+        credentialManager = CredentialManager.create(this);
 
-        //set the stage for login page
+        // Initialize views and listeners
         initializeViews();
         setListeners();
+<<<<<<< HEAD
 
         showCredentialManager();
     }//end of onCreate
@@ -432,6 +342,10 @@ public class Login extends AppCompatActivity {
 
 
         /*
+=======
+    }
+
+>>>>>>> parent of b283b71 (attempted sso)
     private void initializeViews() {
         back = findViewById(R.id.back);
         submit = findViewById(R.id.submit);
@@ -440,9 +354,72 @@ public class Login extends AppCompatActivity {
         password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
         forgot = findViewById(R.id.fgPassword);
     }
-        */
 
+    private void setListeners() {
+        back.setOnClickListener(v -> {
+            startActivity(new Intent(Login.this, SignUp.class));
+            finish();
+        });
+        submit.setOnClickListener(v -> signInWithEmail());
+        forgot.setOnClickListener(v -> forgotPassword());
+    }
 
+    private void forgotPassword() {
+        String em = email.getText().toString().trim();
+        if(isValidEmail(em))
+        {
+            FirebaseAuth.getInstance().sendPasswordResetEmail(em)
+                    .addOnCompleteListener(new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            if (task.isSuccessful()) {
+                                // Password reset email sent successfully
+                                Toast.makeText(Login.this, "Password reset email sent", Toast.LENGTH_SHORT).show();
+                            } else {
+                                // Failed to send password reset email
+                                Toast.makeText(Login.this, "Failed to send password reset email", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+        }
+        else
+        {
+            Toast.makeText(this, "Please enter a valid email", Toast.LENGTH_SHORT).show();
+        }
+    }
 
-}//end
+    private boolean isValidEmail(String email) {
+        return email != null && !email.isEmpty() && android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches();
+    }
 
+    private void signInWithEmail() {
+        String em = email.getText().toString().trim();
+        String pw = password.getText().toString().trim();
+
+        if (em.isEmpty() || pw.isEmpty()) {
+            Toast.makeText(Login.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mAuth.signInWithEmailAndPassword(em, pw)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        updateUI(user);
+                    } else {
+                        Log.w(TAG, "signInWithEmail:failure", task.getException());
+                        Toast.makeText(Login.this,
+                                "Authentication failed: " + task.getException().getMessage(),
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    private void updateUI(FirebaseUser user) {
+        if (user != null) {
+            Toast.makeText(this, "Authentication successful", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(Login.this, Tasks.class));
+            finish();
+        }
+    }
+}
