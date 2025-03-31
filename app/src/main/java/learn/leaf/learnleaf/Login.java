@@ -26,9 +26,11 @@ import android.os.CancellationSignal;
 
 // Google identity tools
 //import com.google.android.gms.fido.fido2.api.common.PublicKeyCredential;
+import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
 
 //Concurrency stuff
 import java.util.concurrent.Executors;
@@ -150,19 +152,22 @@ public class Login extends AppCompatActivity {
     // ===== SHOW CREDENTIAL MANAGER =============
     // ===========================================
     private void showCredentialManager() {
+        // Initialize Google Sign-In option
+        GetGoogleIdOption googleIdOption = new GetGoogleIdOption.Builder()
+                .setServerClientId("YOUR_WEB_CLIENT_ID") // From Google Cloud Console
+                .setFilterByAuthorizedAccounts(true)
+                .build();
 
-        // Flow is: option -> request -> get -> response
-
-        // INIT credential sign in options
+        // Initialize other credential options
         GetPasswordOption passwordOption = new GetPasswordOption();
-        //TODO: FIGURE OUT WHAT TO DO ABOUT REQUEST.JSON
-        GetPublicKeyCredentialOption getPublicKeyCredentialOption =
+        GetPublicKeyCredentialOption publicKeyOption =
                 new GetPublicKeyCredentialOption(requestJson);
 
-        // INIT GetCredentialRequest (to show the credential manager UI hopefully)
+        // Build credential request
         GetCredentialRequest getCredRequest = new GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
                 .addCredentialOption(passwordOption)
-                .addCredentialOption(getPublicKeyCredentialOption)
+                .addCredentialOption(publicKeyOption)
                 .build();
 
         // INIT cancellation signal object
@@ -211,23 +216,39 @@ public class Login extends AppCompatActivity {
     //======================
     //== HANDLE SIGN IN ====
     //======================
-    public void handleSignIn(GetCredentialResponse result) {
-        // Handle the successfully returned credential.
-        Credential credential = result.getCredential();
-        if (credential instanceof PublicKeyCredential) {
-            String responseJson = ((PublicKeyCredential) credential).getAuthenticationResponseJson();
+    private void handleSignIn(GetCredentialResponse response) {
+        Credential credential = response.getCredential();
 
-            // Share responseJson i.e. a GetCredentialResponse on your server to validate and authenticate
-        } else if (credential instanceof PasswordCredential) {
-            String username = ((PasswordCredential) credential).getId();
-            String password = ((PasswordCredential) credential).getPassword();
-            signInWithPassword(username,password);
-            //TODO: insert code for passkey login here
-        } else {
-            // Catch any unrecognized credential type here.
-            Log.e(TAG, "Unexpected type of credential");
+        if (credential instanceof CustomCredential) {
+            CustomCredential customCredential = (CustomCredential) credential;
+            if (GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(customCredential.getType())) {
+                try {
+                    GoogleIdTokenCredential googleCredential =
+                            GoogleIdTokenCredential.createFrom(customCredential.getData());
+
+                    // Get the ID token
+                    String idToken = googleCredential.getIdToken();
+
+                    // Authenticate with Firebase
+                    AuthCredential firebaseCredential =
+                            GoogleAuthProvider.getCredential(idToken, null);
+                    mAuth.signInWithCredential(firebaseCredential)
+                            .addOnCompleteListener(this, task -> {
+                                if (task.isSuccessful()) {
+                                    // Handle successful login
+                                } else {
+                                    // Handle failure
+                                }
+                            });
+
+                } catch (GoogleIdTokenParsingException e) {
+                    Log.e(TAG, "Error parsing Google ID token", e);
+                }
+            }
         }
+        // Handle other credential types...
     }
+
 
 
     //--------------------------------------------------------
