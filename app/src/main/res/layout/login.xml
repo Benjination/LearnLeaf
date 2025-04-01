@@ -112,7 +112,7 @@
         android:id="@+id/fgPassword"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="29dp"
         android:text="Forgot Password?"
         android:textColor="#FF0000"
         android:textSize="16sp"
@@ -120,7 +120,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/reset" />
+        app:layout_constraintTop_toBottomOf="@+id/resend" />
 
     <EditText
         android:id="@+id/email"
