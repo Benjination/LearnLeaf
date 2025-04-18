@@ -1,4 +1,4 @@
-# LearnLeaf
+# LearnLeaf  
 # README for Assignment Tracker App
 
 ## Overview
@@ -7,28 +7,43 @@ Welcome to the LearnLeaf Organizer App! This application is designed to help stu
 
 ## Features
 
-- **Add Subjects**: Organize your assignments by adding different subjects.
-- **Track Assignments**: Input assignment details including title, description, and due date.
-- **Due Date Notifications**: Receive alerts when assignments are nearing their due dates.
-- **User-Friendly Interface**: Navigate the app with ease, making assignment management simple and efficient.
+- **Add Subjects**: Organize your assignments by adding different subjects.  
+- **Track Assignments**: Input assignment details including title, description, and due date.  
+- **Due Date Notifications**: Receive alerts when assignments are nearing their due dates.  
+- **User-Friendly Interface**: Navigate the app with ease, making assignment management simple and efficient.  
+- **Projects Management**: Create and organize projects linked to subjects, allowing you to group related tasks under larger goals.  
+- **Task References**: Tasks can now reference both subjects and projects for better organization and tracking.  
+- **Firestore Integration**: All data is securely stored and synced in real-time using Firestore, ensuring your work is always backed up and accessible.  
+- **Enhanced Notifications**: Receive smarter, more timely reminders for both individual tasks and project milestones.  
+- **Streamlined Navigation**: Improved UI for easy switching between Subjects, Projects, and Tasks.  
+- **Quick Add & Edit**: Add or edit subjects, projects, and tasks quickly from anywhere in the app.  
+- **Comprehensive Dashboard**: View all upcoming tasks, project deadlines, and subject workloads in one customizable dashboard.
 
 ## Getting Started
 
 ### Installation
 
-1. Download the LearnLeaf Organizer App from https://learnleaf-organizer.netlify.app/
-2. Install the app on your device.
+1. Download the LearnLeaf Organizer App from [https://learnleaf-organizer.netlify.app/](https://learnleaf-organizer.netlify.app/)  
+2. Install the app on your device.  
 3. Open the app and create an account or log in.
 
 ### Usage
 
-1. **Add a Subject**: Navigate to the "Subjects" tab and click on "Add Subject." Enter the subject name and save.
-2. **Create an Task**: Go to the "Tasks" tab, click "Add Task," and fill in the details including the subject, title, description, and due date.
-3. **Set Notifications**: Ensure notifications are enabled in your device settings to receive reminders about upcoming assignments.
+1. **Add a Subject**:  
+   Navigate to the "Subjects" tab and click on "Add Subject." Enter the subject name and save.  
+
+2. **Create a Project**:  
+   Go to the "Projects" tab, click "Add Project," select the related subject(s), and enter project details.  
+
+3. **Create a Task**:  
+   Go to the "Tasks" tab, click "Add Task," and fill in the details including the subject, project (optional), title, description, and due date.  
+
+4. **Set Notifications**:  
+   Ensure notifications are enabled in your device settings to receive reminders about upcoming assignments and project milestones.
 
 ## Support
 
-For any questions or issues, please contact our support team at learnleaforganizer@gmail.com.
+For any questions or issues, please contact our support team at [learnleaforganizer@gmail.com](mailto:learnleaforganizer@gmail.com).
 
 ## Contributing
 

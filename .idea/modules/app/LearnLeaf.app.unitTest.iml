@@ -119,6 +119,7 @@
     <orderEntry type="library" scope="TEST" name="Gradle: com.google.firebase:firebase-inappmessaging-display:21.0.2@aar" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: com.google.firebase:firebase-inappmessaging:21.0.2@aar" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: com.google.firebase:firebase-abt:21.1.1@aar" level="project" />
+    <orderEntry type="library" scope="TEST" name="Gradle: com.google.android.libraries.identity.googleid:googleid:1.1.0@aar" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: nu.aaro.gustav:passwordstrengthmeter:0.4@aar" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: androidx.annotation:annotation-jvm:1.8.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Gradle: org.jetbrains.kotlin:kotlin-stdlib:1.9.0" level="project" />
