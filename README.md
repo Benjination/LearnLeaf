@@ -31,13 +31,13 @@ Welcome to the LearnLeaf Organizer App! This application is designed to help stu
 
 ## Beta Access
 
-###For Android users specifically
+For Android users specifically
 
 Want to try the latest features before anyone else?  
 [Request to join the LearnLeaf Beta](https://docs.google.com/forms/d/1vVAP42GSX3pfDnQJSiXtzLbqd8eNw-3d5V-EOr3Qe74/edit)
 
 
-### Usage
+## Usage
 
 1. **Add a Subject**:  
    Navigate to the "Subjects" tab and click on "Add Subject." Enter the subject name and save.  
