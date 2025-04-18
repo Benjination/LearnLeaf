@@ -27,6 +27,16 @@ Welcome to the LearnLeaf Organizer App! This application is designed to help stu
 2. Install the app on your device.  
 3. Open the app and create an account or log in.
 
+
+
+## Beta Access
+
+###For Android users specifically
+
+Want to try the latest features before anyone else?  
+[Request to join the LearnLeaf Beta](https://docs.google.com/forms/d/1vVAP42GSX3pfDnQJSiXtzLbqd8eNw-3d5V-EOr3Qe74/edit)
+
+
 ### Usage
 
 1. **Add a Subject**:  
